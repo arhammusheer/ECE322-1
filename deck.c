@@ -1,11 +1,11 @@
 #include "deck.h"
-
+#include <stdlib.h>
 
 int shuffle(){
 	
 	//add every card to the deck
 	int index = 0;
-	for(int st = 0; st <= 3; st++){
+	for(int st = 0; st < 4; st++){
 		for(int rk = 1; rk <= 13; rk++){
 			index = st*13 + rk-1;
 			char* r = get_rank(rk);
@@ -16,26 +16,43 @@ int shuffle(){
 	}
 	
 	//shuffle the deck
+	for(int i = 0; i < 52; i++){
+		int random_index = rand() % 52;
+		swap_cards(i, random_index);
+	}
+	
+	//set the top card of the deck
+	deck_instance.top_card = 0;
 	
 	return 0;
 }
 
 
 int deal_player_cards(struct player* target){
-	
+	for(int i = 0; i < 7; i++){
+		struct card* top = next_card();
+		if(top == NULL) return 1;
+		target->add_card(target, top);
+	}
 	return 0;
 }
 
 
 struct card* next_card(){
-
-	
+	if(deck_size() == 0){
+		return NULL;
+	}
+	struct card* top = deck_instance.list[deck_instance.top_card];
+	deck_instance.top_card++;
+	return top;
 }
 
 
 size_t deck_size(){
-	
-	
+	if(deck_instance.top_card > 52){
+		deck_instance.top_card = 52;
+	}
+	return (size_t) 52-deck_instance.top_card;
 }
 
 char get_suit(int s){
@@ -109,4 +126,17 @@ char* get_rank(int r){
 		break;
 	}
 	return r;
+}
+
+int swap_cards(int index1, int index2){
+	
+	if(index1 > 51 || index2 > 51 || index1 < 0 || index2 < 0){
+		return 2;
+	}
+	
+	struct card temp = deck_instance.list[index1];
+	deck_instance.list[index1] = deck_instance.list[index2];
+	deck_instance.list[index2] = temp;
+	
+	return 0;
 }

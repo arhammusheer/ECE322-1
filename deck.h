@@ -85,5 +85,15 @@ size_t deck_size( );
   * char if not a valid rank number
   */
   char* get_rank(int r);
+  
+  /*
+   * Function: swap_cards
+   * --------------------
+   * Swap the location of two cards in the deck
+   *
+   * parameters: index1 (0-51), index2 (0-51)
+   * returns: 0 if no error, and non-zero on error
+   */
+   int swap_cards(int index1, int index2);
 
 #endif

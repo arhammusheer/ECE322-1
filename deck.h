@@ -65,7 +65,7 @@ struct card* next_card( );
 size_t deck_size( );
 
 /*
- * Function: suit
+ * Function: get_suit
  * --------------
  * Return a character corresponding to a suit number.
  *
@@ -73,10 +73,10 @@ size_t deck_size( );
  * returns: character corresponding to suit number,
  * null char if not a valid suit number
  */
- char suit(int s);
+ char get_suit(int s);
  
  /*
-  * Function: rank
+  * Function: get_rank
   * --------------
   * Return a length 2 char array corresponding to a rank number.
   *
@@ -84,6 +84,6 @@ size_t deck_size( );
   * returns: char array corresponsing to rank, null
   * char if not a valid rank number
   */
-  char* rank(int r);
+  char* get_rank(int r);
 
 #endif

@@ -9,8 +9,8 @@ int shuffle(){
 		for(int rk = 1; rk <= 13; rk++){
 			index = st*13 + rk-1;
 			char* r = get_rank(rk);
-			deck_instance.list[index].rank[0] = *r[0];
-			deck_instance.list[index].rank[1] = *r[1];
+			deck_instance.list[index].rank[0] = r[0];
+			deck_instance.list[index].rank[1] = r[1];
 		}
 		deck_instance.list[index].suit = get_suit(st);
 	}
@@ -42,7 +42,7 @@ struct card* next_card(){
 	if(deck_size() == 0){
 		return NULL;
 	}
-	struct card* top = deck_instance.list[deck_instance.top_card];
+	struct card* top = &(deck_instance.list[deck_instance.top_card]);
 	deck_instance.top_card++;
 	return top;
 }
@@ -65,9 +65,9 @@ char get_suit(int s){
 	}
 }
 
-char* get_rank(int r){
-	char r[2];
-	switch(r){
+char* get_rank(int rk){
+	char* r =(char *) malloc(sizeof(char) * 2);
+	switch(rk){
 	case 1: 
 		r[0] = 'A';
 		r[1] = '\0';

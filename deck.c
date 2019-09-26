@@ -11,6 +11,7 @@ int shuffle(){
 			char* r = get_rank(rk);
 			deck_instance.list[index].rank[0] = r[0];
 			deck_instance.list[index].rank[1] = r[1];
+			free(r);
 		}
 		deck_instance.list[index].suit = get_suit(st);
 	}

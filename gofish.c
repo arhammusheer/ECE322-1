@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 int which_player;
+int winner;
 struct player* human;
 struct player* computer;
 char input_rank;
@@ -21,7 +22,7 @@ int main(int args, char* argv[])
 			//6. check for books
 			//7. repeat. swap player1 with player2 when turns end
 			
-			/*
+			
 			
 			if(which_player == 1){
 				which_player = 2;
@@ -50,13 +51,14 @@ int main(int args, char* argv[])
 				}
 				check_add_book(computer);
 			}
-			
-			
-			Step 2:
-			int has_rank = 
-			
-			
-			*/
+			if(game_over(human)){
+				winner = 1;
+				break;
+			}
+			if(game_over(computer)){
+				winner = 2;
+				break;
+			}
 			
 			
 	}

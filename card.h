@@ -50,4 +50,6 @@ struct hand
   struct hand* next;
 };
 
+int compare_card(struct card* comp1, char comp2);
+struct card create_card(char rank[2], char suit);
 #endif

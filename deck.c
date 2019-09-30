@@ -33,7 +33,7 @@ int deal_player_cards(struct player* target){
 	for(int i = 0; i < 7; i++){
 		struct card* top = next_card();
 		if(top == NULL) return 1;
-		target->add_card(target, top);
+		add_card(target, top);
 	}
 	return 0;
 }

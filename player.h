@@ -2,6 +2,8 @@
 #define PLAYER_H
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "card.h"
 
 /*
@@ -24,6 +26,8 @@ struct player {
  */
 struct player user;
 struct player computer;
+
+
 
 /*
  * Function: add_card
@@ -143,6 +147,8 @@ char computer_play(struct player* target);
  *   returns: return a valid selected rank
  */
 char user_play(struct player* target);
+
+void print_user_book(struct player* target);
 
 #endif
 

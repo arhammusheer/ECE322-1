@@ -45,6 +45,7 @@ int remove_card(struct player* target, struct card* old_card){
 
 char check_add_book(struct player* target){
     struct hand* topHand;
+    char rank;
     topHand = target->card_list;
     ValidCards vcards = valid_cards_default;
     for(unsigned long long i =0; i< sizeof(vcards.ranks)/4;i++){
@@ -55,7 +56,7 @@ char check_add_book(struct player* target){
             memcpy(rank, topHand->top.rank,2);
             char rank2[2];
             memcpy(rank2, vcards.ranks[i],2);
-            if(strncmp(rank,rank2,2)==0){
+            if(strncmp(rank,topHand->top.rank,2)==0){
                 count++;
             }
             topHand=topHand->next;
@@ -69,7 +70,7 @@ char check_add_book(struct player* target){
 
                 remove_card(target,&newcard);
             }
-            strcat(target->book, vcards.ranks[i][0]);
+            memcpy(target->book, &vcards.ranks[i][0],1);
         }
         topHand = target->card_list;
     }
@@ -102,8 +103,8 @@ char user_play(struct player* target){
 }
 
 void print_user_book(struct player* target){
-    ValidCards vcards = valid_cards_default;
+    printf("\nPlayer Book: ");
     for(unsigned int i=0; i<strlen(target->book);i++){
-        printf("%s ", vcards.ranks[target->book[i] - '0']);
+        printf("%s ", get_complete_char(target->book[i]));
     }
 }

@@ -11,7 +11,7 @@ struct valid_cards
     char *ranks[13];
     char suits[4];
 
-}static valid_cards_default={  "2",
+}static valid_cards_default={ "2",
                               "3",
                               "4",
                               "5",

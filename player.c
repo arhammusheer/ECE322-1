@@ -69,9 +69,7 @@ char check_add_book(struct player* target){
 
                 remove_card(target,&newcard);
             }
-            char buffer[7];
-            sprintf(buffer, "%d", i);
-            strcat(target->book, buffer);
+            strcat(target->book, vcards.ranks[i][0]);
         }
         topHand = target->card_list;
     }
@@ -105,7 +103,6 @@ char user_play(struct player* target){
 
 void print_user_book(struct player* target){
     ValidCards vcards = valid_cards_default;
-    printf("%i\n",strlen(target->book));
     for(unsigned int i=0; i<strlen(target->book);i++){
         printf("%s ", vcards.ranks[target->book[i] - '0']);
     }

@@ -2,8 +2,6 @@
 
 int which_player;
 int winner;
-struct player* human;
-struct player* computer;
 char input_rank;
 
 
@@ -25,37 +23,61 @@ int main(int args, char* argv[])
 			
 			
 			if(which_player == 1){
-				which_player = 2;
+				//human player's turn
+				
+				which_player = 2; //swap turns
+				
+				//get user input
 				input_rank = user_play();
-				int has_rank = search(computer, input_rank);
+				
+				//check if opponent has the rank
+				int has_rank = search(&computer, input_rank);
 				if(has_rank){
-					transfer_cards(computer, human, input_rank);
+					//hand over matching cards
+					transfer_cards(&computer, &user, input_rank);
 				}else{
+					//draw a card from the deck, if it matches the requested rank player gets another turn
 					struct card* drawn_card = next_card();
 					if(compare_card(drawn_card, input_rank)){
 						which_player = 1;
 					}
+					add_card(&user, drawn_card);
 				}
-				check_add_book(human);
+				
+				//check if any books were completed
+				check_add_book(&user);
 			}else{
-				which_player = 1;
+				//computer player's turn
+				
+				which_player = 1; //swap turns
+				
+				//get computer input
 				input_rank = computer_play();
-				int has_rank = search(human, input_rank);
+				
+				//check if opponent has the rank
+				int has_rank = search(&user, input_rank);
 				if(has_rank){
-					transfer_cards(human, computer, input_rank);
+					//hand over matching cards
+					transfer_cards(&user, &computer, input_rank);
 				}else{
+					//draw a card from the deck, if it matches the requested rank player gets another turn
 					struct card* drawn_card = next_card();
 					if(compare_card(drawn_card, input_rank)){
 						which_player = 2;
 					}
+					add_card(&computer, drawn_card);
 				}
-				check_add_book(computer);
+				
+				//check if any books were completed
+				check_add_book(&computer);
 			}
-			if(game_over(human)){
+			
+			//check if there is a winner
+			if(game_over(&user)){
 				winner = 1;
 				break;
 			}
-			if(game_over(computer)){
+			if(game_over(&computer)){
 				winner = 2;
 				break;
 			}
@@ -64,13 +86,4 @@ int main(int args, char* argv[])
 	}
 	//end of game printouts here
   fprintf(stdout, "Put your code here.");
-}
-
-char* get_player_input(char* prompt){
-	
-}
-
-int validate_player_input(char* input){
-	
-	
 }

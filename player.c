@@ -83,6 +83,7 @@ char check_add_book(struct player* target){
                 remove_card(target,&newcard);
             }
             memcpy(target->book, &vcards.ranks[i][0],1);
+            return vcards.ranks[i][0];
         }
         topHand = target->card_list;
     }
@@ -161,8 +162,7 @@ char computer_play(struct player* target){
 
 char user_play(struct player* target){
     char rank[2];
-    memcpy(rank, get_player_input("Player 1 input rank: "), 2);
-    printf("\n");
+    memcpy(rank, get_player_input("Player 1's turn, enter a rank:"), 2);
     if(search(target, rank[0]))
         return rank[0];
     else{
@@ -204,4 +204,18 @@ char* get_player_input(char* prompt){
     printf("That rank does not exist, try again\n");
     return get_player_input(prompt);
 
+}
+
+void print_hand_card_of_rank(struct player* target, char rank){
+    struct hand* topHand;
+    topHand = target->card_list;
+    while(topHand){
+        if(compare_card_rank(&topHand->top, rank)) {
+            if (topHand->top.rank[0] == '1')
+                printf(" %2s%c", topHand->top.rank, topHand->top.suit);
+            else
+                printf("%2s%c", topHand->top.rank, topHand->top.suit);
+        }
+        topHand = topHand->next;
+    }
 }

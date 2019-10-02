@@ -153,6 +153,7 @@ void print_user_book(struct player* target);
 int validate_player_input(char input[2]);
 char* get_player_input(char* prompt);
 int view_hand(struct player* target);
+void print_hand_card_of_rank(struct player* target, char rank);
 
 #endif
 

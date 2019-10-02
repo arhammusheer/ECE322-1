@@ -16,7 +16,10 @@ int main(int args, char* argv[])
 {
 	running = 1;
 	while(running){
+		
+		//initialize the game state
 		init_game();
+		
 		while(1){
 			//game runs in here
 
@@ -37,7 +40,7 @@ int main(int args, char* argv[])
 				current_player = &computer;
 				opposite_player = &user;
 			}
-			
+			//run the turn
 			player_turn(current_player, opposite_player);
 			
 
@@ -59,6 +62,8 @@ int main(int args, char* argv[])
 		}else{ //computer wins
 			printf("Computer wins!");
 		}
+		
+		//ask if want to play again
 		running = ask_if_restart("Play again? [y/n]:\n");
 	}
 }

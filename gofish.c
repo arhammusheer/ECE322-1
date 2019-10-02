@@ -30,18 +30,15 @@ int main(int args, char* argv[])
 			//6. check for books
 			//7. repeat. swap player1 with player2 when turns end
 
-			if(which_player == 1){
-				current_player = &user;
-				opposite_player = &computer;
-			}else{
-				current_player = &computer;
-				opposite_player = &user;
-			}
-			
-			player_turn(current_player, opposite_player);
-			
 
-			//check if there is a winner
+
+
+           current_player  = which_player == 1 ? &user : &computer;
+           opposite_player = which_player == 1 ? &computer : &user;
+           player_turn(current_player, opposite_player);
+
+
+            //check if there is a winner
 			if(game_over(&user)){
 				winner = 1;
 				break;
@@ -64,7 +61,7 @@ int main(int args, char* argv[])
 }
 
 void player_turn(struct player* player1, struct player* player2){
-	
+
 	if(which_player == 1)
 		view_hand(player1);
 	print_user_book(player1);
@@ -73,7 +70,7 @@ void player_turn(struct player* player1, struct player* player2){
 		input_rank = user_play(player1);
 	else
 		input_rank = computer_play(player1);
-	
+
 	//change turn
 	which_player = which_player % 2 + 1;
 
@@ -93,7 +90,7 @@ void player_turn(struct player* player1, struct player* player2){
 
 	//check if any books were completed
 	check_add_book(player1);
-	
+
 }
 
 void init_game(){

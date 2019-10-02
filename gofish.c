@@ -10,7 +10,7 @@ char input_rank;
 
 int main(int args, char* argv[]) 
 {
-    // Init time and run rand once in case rand() calls previous value.
+    // Init time and seed the random number generator
     srand(time(NULL));
     rand();
 
@@ -27,8 +27,6 @@ int main(int args, char* argv[])
 			//6. check for books
 			//7. repeat. swap player1 with player2 when turns end
 			
-			
-			
 			if(which_player == 1){
 				//human player's turn
 
@@ -43,7 +41,7 @@ int main(int args, char* argv[])
 					//hand over matching cards
 					transfer_cards(&computer, &user, input_rank);
 				}else{
-					//draw a card from the deck, if it matches the requested rank player gets another turn
+					//draw a card from the deck, if it matches the requested rank, player gets another turn
 					struct card* drawn_card = next_card();
 					if(compare_card_rank(drawn_card, input_rank)){
 						which_player = 1;
@@ -67,7 +65,7 @@ int main(int args, char* argv[])
 					//hand over matching cards
 					transfer_cards(&user, &computer, input_rank);
 				}else{
-					//draw a card from the deck, if it matches the requested rank player gets another turn
+					//draw a card from the deck, if it matches the requested rank, player gets another turn
 					struct card* drawn_card = next_card();
 					if(compare_card_rank(drawn_card, input_rank)){
 						which_player = 2;

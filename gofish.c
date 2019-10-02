@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "player.h"
 #include "deck.h"
+#include "gofish.h"
 #include <time.h>
 
 int which_player;

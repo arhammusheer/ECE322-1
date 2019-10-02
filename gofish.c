@@ -58,6 +58,7 @@ int main(int args, char* argv[])
 
 void player_turn(struct player* player1, struct player* player2){
     char input_rank;
+    int start_turn = which_player;
     // Always view the users hand on turn and both books
     view_hand(&user);
 	print_user_book(&user);
@@ -78,6 +79,14 @@ void player_turn(struct player* player1, struct player* player2){
 	//check if opponent has the rank
 	int has_rank = search(player2, input_rank);
 	if(has_rank){
+	    printf("   - %s has ",player1->name);
+	    print_hand_card_of_rank(player1, input_rank);
+	    printf("\n");
+
+        printf("   - %s has ",player2->name);
+        print_hand_card_of_rank(player2, input_rank);
+        printf("\n");
+
 		//hand over matching cards
 		transfer_cards(player2, player1, input_rank);
         //Player gets another turn
@@ -86,13 +95,22 @@ void player_turn(struct player* player1, struct player* player2){
 		//draw a card from the deck, if it matches the requested rank, player gets another turn
 		struct card* drawn_card = next_card();
 		if(compare_card_rank(drawn_card, input_rank)){
+
 			which_player = which_player % 2 + 1;
 		}
 		add_card(player1, drawn_card);
+		// player has already changed so check if it is player 2 turns
+        if(which_player==2)
+            printf("   - Go Fish, %s draws %2s%c\n",player1->name, drawn_card->rank, drawn_card->suit);
+        else
+            printf("   - Go Fish, %s draws a card\n",player1->name);
 	}
 
 	//check if any books were completed
-	check_add_book(player1);
+	if(check_add_book(player1))
+	    printf("   - %s Books %c\n",player1->name, input_rank);
+	if(start_turn==which_player)
+	    printf("   - %s gets another turn\n",player1->name);
 
 }
 

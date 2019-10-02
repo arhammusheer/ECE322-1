@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "player.h"
+#include "deck.h"
 #include <time.h>
 
 int which_player;
@@ -34,7 +35,7 @@ int main(int args, char* argv[])
 				which_player = 2; //swap turns
 
 				//get user input
-				input_rank = user_play();
+				input_rank = user_play(&user);
 
 				//check if opponent has the rank
 				int has_rank = search(&computer, input_rank);
@@ -44,7 +45,7 @@ int main(int args, char* argv[])
 				}else{
 					//draw a card from the deck, if it matches the requested rank player gets another turn
 					struct card* drawn_card = next_card();
-					if(compare_card(drawn_card, input_rank)){
+					if(compare_card_rank(drawn_card, input_rank)){
 						which_player = 1;
 					}
 					add_card(&user, drawn_card);
@@ -58,7 +59,7 @@ int main(int args, char* argv[])
 				which_player = 1; //swap turns
 
 				//get computer input
-				input_rank = computer_play();
+				input_rank = computer_play(&computer);
 
 				//check if opponent has the rank
 				int has_rank = search(&user, input_rank);
@@ -68,7 +69,7 @@ int main(int args, char* argv[])
 				}else{
 					//draw a card from the deck, if it matches the requested rank player gets another turn
 					struct card* drawn_card = next_card();
-					if(compare_card(drawn_card, input_rank)){
+					if(compare_card_rank(drawn_card, input_rank)){
 						which_player = 2;
 					}
 					add_card(&computer, drawn_card);

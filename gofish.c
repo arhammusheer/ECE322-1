@@ -7,7 +7,6 @@
 int which_player;
 int winner;
 int running;
-char input_rank;
 struct player* current_player;
 struct player* opposite_player;
 
@@ -29,9 +28,6 @@ int main(int args, char* argv[])
 			//5. if card from deck is same rank as input, still player1's turn
 			//6. check for books
 			//7. repeat. swap player1 with player2 when turns end
-
-
-
 
            current_player  = which_player == 1 ? &user : &computer;
            opposite_player = which_player == 1 ? &computer : &user;
@@ -61,15 +57,20 @@ int main(int args, char* argv[])
 }
 
 void player_turn(struct player* player1, struct player* player2){
+    char input_rank;
+    // Always view the users hand on turn and both books
+    view_hand(&user);
+	print_user_book(&user);
+	print_user_book(&computer);
+
 
 	if(which_player == 1)
-		view_hand(player1);
-	print_user_book(player1);
-	print_user_book(player2);
-	if(which_player == 1)
 		input_rank = user_play(player1);
-	else
-		input_rank = computer_play(player1);
+	else {
+        printf("Player 2's turn, enter a rank: ");
+        input_rank = computer_play(player1);
+        printf("%-2s\n", get_complete_char(input_rank));
+    }
 
 	//change turn
 	which_player = which_player % 2 + 1;
@@ -79,6 +80,8 @@ void player_turn(struct player* player1, struct player* player2){
 	if(has_rank){
 		//hand over matching cards
 		transfer_cards(player2, player1, input_rank);
+        //Player gets another turn
+        which_player = which_player % 2 + 1;
 	}else{
 		//draw a card from the deck, if it matches the requested rank, player gets another turn
 		struct card* drawn_card = next_card();

@@ -161,8 +161,7 @@ char computer_play(struct player* target){
 
 char user_play(struct player* target){
     char rank[2];
-    memcpy(rank, get_player_input("Player 1 input rank: "), 2);
-    printf("\n");
+    memcpy(rank, get_player_input("Player 1's turn, enter a rank:"), 2);
     if(search(target, rank[0]))
         return rank[0];
     else{

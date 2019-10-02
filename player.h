@@ -16,6 +16,7 @@ struct player {
   struct hand* card_list;
   char book[7];
   size_t hand_size;
+  char name[9];
 };
 
 /* 
@@ -151,6 +152,7 @@ char user_play(struct player* target);
 void print_user_book(struct player* target);
 int validate_player_input(char input[2]);
 char* get_player_input(char* prompt);
+int view_hand(struct player* target);
 
 #endif
 

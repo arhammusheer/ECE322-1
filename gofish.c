@@ -15,10 +15,19 @@ int main(int args, char* argv[])
     rand();
 
 	which_player = 1; //human goes first
+
+	//Name each player
+	strcpy(user.name, "Player 1");
+	strcpy(computer.name, "Player 2");
+    shuffle();
+	// Deal cards to both user and computer player
+    deal_player_cards(&user);
+    deal_player_cards(&computer);
 	while(1){
 			//game runs in here
 			
 			//steps:
+			//0. Add 7 cards into player 1 and player 2 hands
 			//1. get player1 input and validate 
 			//2. check if player2 has cards
 			//3. give cards from player2's hand
@@ -28,13 +37,16 @@ int main(int args, char* argv[])
 			//7. repeat. swap player1 with player2 when turns end
 			
 			
-			
+
 			if(which_player == 1){
 				//human player's turn
 
 				which_player = 2; //swap turns
 
 				//get user input
+				view_hand(&user);
+				print_user_book(&user);
+				print_user_book(&computer);
 				input_rank = user_play(&user);
 
 				//check if opponent has the rank

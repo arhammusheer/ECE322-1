@@ -1,6 +1,22 @@
 #include "player.h"
 
 
+int view_hand(struct player* target){
+    printf("%s\'s Hand -", target->name);
+    struct hand* topHand;
+    topHand = target->card_list;
+    while(topHand){
+        if(topHand->top.rank[0]=='1')
+            printf(" %2s%c", topHand->top.rank,topHand->top.suit);
+        else
+            printf("%2s%c", topHand->top.rank,topHand->top.suit);
+        topHand = topHand->next;
+    }
+    printf("\n");
+    return 0;
+}
+
+
 int add_card(struct player* target, struct card* new_card){
 	struct hand* topHand;
 	topHand = target->card_list;
@@ -156,10 +172,11 @@ char user_play(struct player* target){
 }
 
 void print_user_book(struct player* target){
-    printf("\nPlayer Book: ");
+    printf("%s's Book - ", target->name);
     for(unsigned int i=0; i<strlen(target->book);i++){
         printf("%s ", get_complete_char(target->book[i]));
     }
+    printf("\n");
 }
 int validate_player_input(char input[2]){
     char rank[2];
@@ -184,6 +201,7 @@ char* get_player_input(char* prompt){
         rank[1]='\0';
     if(validate_player_input(rank))
         return rank;
+    printf("That rank does not exist, try again\n");
     return get_player_input(prompt);
 
 }

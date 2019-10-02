@@ -1,4 +1,4 @@
-SOURCES=gofish.c player.c deck.c
+SOURCES=gofish.c player.c deck.c card.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=gofish
 CFLAGS=-Wall

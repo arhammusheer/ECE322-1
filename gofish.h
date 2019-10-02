@@ -5,5 +5,4 @@
    Define any prototype functions
    for gofish.h here.
 */
-
 #endif

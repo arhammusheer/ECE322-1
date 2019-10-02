@@ -149,6 +149,8 @@ char computer_play(struct player* target);
 char user_play(struct player* target);
 
 void print_user_book(struct player* target);
+int validate_player_input(char input[2]);
+char* get_player_input(char* prompt);
 
 #endif
 

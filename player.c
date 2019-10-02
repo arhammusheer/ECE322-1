@@ -1,5 +1,6 @@
 #include "player.h"
 
+
 int add_card(struct player* target, struct card* new_card){
 	struct hand* topHand;
 	topHand = target->card_list;
@@ -45,18 +46,13 @@ int remove_card(struct player* target, struct card* old_card){
 
 char check_add_book(struct player* target){
     struct hand* topHand;
-    char rank;
     topHand = target->card_list;
     ValidCards vcards = valid_cards_default;
     for(unsigned long long i =0; i< sizeof(vcards.ranks)/4;i++){
         int count = 0;
         // Iterate through the list searching for each occurrence of rank
         while(topHand){
-            char rank[2];
-            memcpy(rank, topHand->top.rank,2);
-            char rank2[2];
-            memcpy(rank2, vcards.ranks[i],2);
-            if(strncmp(rank,topHand->top.rank,2)==0){
+            if(compare_ranks(topHand->top.rank, vcards.ranks[i])){
                 count++;
             }
             topHand=topHand->next;
@@ -79,27 +75,84 @@ char check_add_book(struct player* target){
 }
 
 int search(struct player* target, char rank){
+    struct hand* topHand;
+    topHand = target->card_list;
+    while(topHand){
+        if(compare_card_rank(&topHand->top, rank)){
+            return 1;
+        }
+        topHand = topHand->next;
+    }
 	return 0;
 }
 
 int transfer_cards(struct player* src, struct player* dest, char rank){
+    if(!search(src, rank)){
+        return 0;
+    }
+    char rnk[2];
+    memcpy(rnk, get_complete_char(rank),2);
+    struct card C_card = create_card(rnk,'C');
+    struct card D_card = create_card(rnk,'D');
+    struct card H_card = create_card(rnk,'H');
+    struct card S_card = create_card(rnk,'S');
+    struct card card_ar[4] = {C_card, D_card, H_card, S_card};
+
+    struct card current_card;
+    struct hand* topHand;
+    topHand = src->card_list;
+    for(int i=0;i<4;i++){
+        current_card = card_ar[i];
+        while(topHand){
+            if(compare_card(&topHand->top, &current_card)){
+                remove_card(src, &current_card);
+                add_card(dest, &current_card);
+                break;
+            }
+            topHand = topHand->next;
+        }
+        topHand = src->card_list;
+    }
+
 	return 0;
 }
 
 int game_over(struct player* target){
+    if(strlen(target->book)==7)
+        return 1;
 	return 0;
 }
 
 int reset_player(struct player* target){
+    memset(target->book, '\0', 7);
+    target->card_list = NULL;
+    target->hand_size = 0;
+
 	return 0;
 }
 
 char computer_play(struct player* target){
-	return 0;
+    if(target->hand_size == 0)
+        return 0;
+    size_t r = rand();
+    r = r%(target->hand_size);
+    struct hand* topHand = target->card_list;
+    for(size_t i=0;i<r;i++){
+        topHand = topHand->next;
+    }
+    return topHand->top.rank[0];
 }
 
 char user_play(struct player* target){
-	return 0;
+    char rank[2];
+    memcpy(rank, get_player_input("Player 1 input rank: "), 2);
+    printf("\n");
+    if(search(target, rank[0]))
+        return rank[0];
+    else{
+        printf("Error - must have at least one card from rank to play\n");
+        user_play(target);
+    }
 }
 
 void print_user_book(struct player* target){
@@ -107,4 +160,30 @@ void print_user_book(struct player* target){
     for(unsigned int i=0; i<strlen(target->book);i++){
         printf("%s ", get_complete_char(target->book[i]));
     }
+}
+int validate_player_input(char input[2]){
+    char rank[2];
+    memcpy(rank, input, 2);
+    ValidCards vcards = valid_cards_default;
+    for(unsigned long long i =0; i< sizeof(vcards.ranks)/4;i++){
+        if (compare_ranks(rank, vcards.ranks[i]))
+            return 1;
+    }
+    return 0;
+
+}
+
+char* get_player_input(char* prompt){
+    static char rank[2];
+    printf("%s", prompt);
+    // Scan 2 chars from stdin
+    scanf("%2s", rank);
+    // get char until newline is found to clear stdin
+    while ( getchar() != '\n' );
+    if(rank[1]=='\n')
+        rank[1]='\0';
+    if(validate_player_input(rank))
+        return rank;
+    return get_player_input(prompt);
+
 }

@@ -8,30 +8,16 @@ int which_player;
 int winner;
 int running;
 char input_rank;
+struct player* current_player;
+struct player* opposite_player;
 
 
 int main(int args, char* argv[]) 
 {
 	running = 1;
 	while(running){
-		//reset players
-		reset_player(&user);
-		reset_player(&computer);
-
-		// Init time and seed the random number generator
-		srand(time(NULL));
-		rand();
-
-	which_player = 1; //human goes first
-
-	//Name each player
-	strcpy(user.name, "Player 1");
-	strcpy(computer.name, "Player 2");
-    shuffle();
-	// Deal cards to both user and computer player
-    deal_player_cards(&user);
-    deal_player_cards(&computer);
-	while(1){
+		init_game();
+		while(1){
 			//game runs in here
 
 			//steps:
@@ -44,71 +30,26 @@ int main(int args, char* argv[])
 			//6. check for books
 			//7. repeat. swap player1 with player2 when turns end
 
-
-
 			if(which_player == 1){
-				//human player's turn
+				current_player = &user;
+				opposite_player = &computer;
+			}else{
+				current_player = &computer;
+				opposite_player = &user;
+			}
+			
+			player_turn(current_player, opposite_player);
+			
 
-					which_player = 2; //swap turns
-
-				//get user input
-				view_hand(&user);
-				print_user_book(&user);
-				print_user_book(&computer);
-				input_rank = user_play(&user);
-
-					//check if opponent has the rank
-					int has_rank = search(&computer, input_rank);
-					if(has_rank){
-						//hand over matching cards
-						transfer_cards(&computer, &user, input_rank);
-					}else{
-						//draw a card from the deck, if it matches the requested rank, player gets another turn
-						struct card* drawn_card = next_card();
-						if(compare_card_rank(drawn_card, input_rank)){
-							which_player = 1;
-						}
-						add_card(&user, drawn_card);
-					}
-
-					//check if any books were completed
-					check_add_book(&user);
-				}else{
-					//computer player's turn
-
-					which_player = 1; //swap turns
-
-					//get computer input
-					input_rank = computer_play(&computer);
-
-					//check if opponent has the rank
-					int has_rank = search(&user, input_rank);
-					if(has_rank){
-						//hand over matching cards
-						transfer_cards(&user, &computer, input_rank);
-					}else{
-						//draw a card from the deck, if it matches the requested rank, player gets another turn
-						struct card* drawn_card = next_card();
-						if(compare_card_rank(drawn_card, input_rank)){
-							which_player = 2;
-						}
-						add_card(&computer, drawn_card);
-					}
-
-					//check if any books were completed
-					check_add_book(&computer);
-				}
-
-				//check if there is a winner
-				if(game_over(&user)){
-					winner = 1;
-					break;
-				}
-				if(game_over(&computer)){
-					winner = 2;
-					break;
-				}
-
+			//check if there is a winner
+			if(game_over(&user)){
+				winner = 1;
+				break;
+			}
+			if(game_over(&computer)){
+				winner = 2;
+				break;
+			}
 
 		}
 		//end of game printouts here
@@ -118,10 +59,60 @@ int main(int args, char* argv[])
 		}else{ //computer wins
 			printf("Computer wins!");
 		}
-		if(ask_if_restart("Play again? [y/n]:\n") == 0){
-			running = 0;
-		}
+		running = ask_if_restart("Play again? [y/n]:\n");
 	}
+}
+
+void player_turn(struct player* player1, struct player* player2){
+	
+	if(which_player == 1)
+		view_hand(player1);
+	print_user_book(player1);
+	print_user_book(player2);
+	if(which_player == 1)
+		input_rank = user_play(player1);
+	else
+		input_rank = computer_play(player1);
+	
+	//change turn
+	which_player = which_player % 2 + 1;
+
+	//check if opponent has the rank
+	int has_rank = search(player2, input_rank);
+	if(has_rank){
+		//hand over matching cards
+		transfer_cards(player2, player1, input_rank);
+	}else{
+		//draw a card from the deck, if it matches the requested rank, player gets another turn
+		struct card* drawn_card = next_card();
+		if(compare_card_rank(drawn_card, input_rank)){
+			which_player = which_player % 2 + 1;
+		}
+		add_card(player1, drawn_card);
+	}
+
+	//check if any books were completed
+	check_add_book(player1);
+	
+}
+
+void init_game(){
+	//reset players
+	reset_player(&user);
+	reset_player(&computer);
+
+	// Init time and seed the random number generator
+	srand(time(NULL));
+	rand();
+	which_player = 1; //human goes first
+
+	//Name each player
+	strcpy(user.name, "Player 1");
+	strcpy(computer.name, "Player 2");
+	shuffle();
+	// Deal cards to both user and computer player
+	deal_player_cards(&user);
+	deal_player_cards(&computer);
 }
 
 int ask_if_restart(char* prompt){

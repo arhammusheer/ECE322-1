@@ -104,7 +104,7 @@ void player_turn(struct player* player1, struct player* player2){
 		}
 		add_card(player1, drawn_card);
 		// player has already changed so check if it is player 2 turns
-        if(which_player==2)
+        if(start_turn==1)
             printf("   - Go Fish, %s draws %2s%c\n",player1->name, drawn_card->rank, drawn_card->suit);
         else
             printf("   - Go Fish, %s draws a card\n",player1->name);

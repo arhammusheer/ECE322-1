@@ -36,7 +36,6 @@ int main(int args, char* argv[])
            opposite_player = which_player == 1 ? &computer : &user;
            player_turn(current_player, opposite_player);
 
-
             //check if there is a winner
 			if(game_over(&user)){
 				winner = 1;

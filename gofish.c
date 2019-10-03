@@ -82,7 +82,7 @@ void player_turn(struct player* player1, struct player* player2){
 
 	//check if opponent has the rank
 	int has_rank = search(player2, input_rank);
-	if(has_rank){
+	if(has_rank && player1->hand_size){
 	    printf("   - %s has ",player1->name);
 	    print_hand_card_of_rank(player1, input_rank);
 	    printf("\n");

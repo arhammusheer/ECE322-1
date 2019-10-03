@@ -71,7 +71,7 @@ void player_turn(struct player* player1, struct player* player2){
 
 	if(which_player == 1 && player1->hand_size)
 		input_rank = user_play(player1);
-	else if(which_player ==2){
+	else if(which_player ==2 && player1->hand_size){
         printf("Player 2's turn, enter a rank: ");
         input_rank = computer_play(player1);
         printf("%-2s\n", get_complete_char(input_rank));
@@ -84,8 +84,7 @@ void player_turn(struct player* player1, struct player* player2){
 	which_player = which_player % 2 + 1;
 
 	//check if opponent has the rank
-	int has_rank = search(player2, input_rank);
-	if(has_rank && player1->hand_size){
+	if(player1->hand_size && search(player2, input_rank)){
 	    printf("   - %s has ",player1->name);
 	    print_hand_card_of_rank(player1, input_rank);
 	    printf("\n");

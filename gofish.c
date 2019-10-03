@@ -106,15 +106,17 @@ void player_turn(struct player* player1, struct player* player2){
 		}
 		add_card(player1, drawn_card);
 		// player has already changed so check if it is player 2 turns
-        if(start_turn==1)
+        if(start_turn==1 || start_turn==which_player)
             printf("   - Go Fish, %s draws %2s%c\n",player1->name, drawn_card->rank, drawn_card->suit);
         else
             printf("   - Go Fish, %s draws a card\n",player1->name);
 	}
 
 	//check if any books were completed
-	if(check_add_book(player1))
-	    printf("   - %s Books %2s\n",player1->name, get_complete_char(player1->book[player1->book_size-1]));
+	if(check_add_book(player1)) {
+        printf("   - %s Books %2s\n", player1->name, get_complete_char(player1->book[player1->book_size - 1]));
+        which_player = which_player % 2 + 1;
+    }
 	if(start_turn==which_player)
 	    printf("   - %s gets another turn\n",player1->name);
 

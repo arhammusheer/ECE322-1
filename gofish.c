@@ -69,13 +69,16 @@ void player_turn(struct player* player1, struct player* player2){
 	print_user_book(&computer);
 
 
-	if(which_player == 1)
+	if(which_player == 1 && player1->hand_size)
 		input_rank = user_play(player1);
-	else {
+	else if(which_player ==2){
         printf("Player 2's turn, enter a rank: ");
         input_rank = computer_play(player1);
         printf("%-2s\n", get_complete_char(input_rank));
     }
+	else{
+	    input_rank = '0';
+	}
 
 	//change turn
 	which_player = which_player % 2 + 1;
@@ -138,10 +141,11 @@ void init_game(){
 }
 
 int ask_if_restart(char* prompt){
-	char reply;
+	static char reply;
     printf("%s", prompt);
     // Scan char from stdin
-    scanf(" %c", reply);
+    scanf("%c", &reply);
+    while ( getchar() != '\n' );
     if(reply == 'y' || reply == 'Y'){
 		return 1;
 	}

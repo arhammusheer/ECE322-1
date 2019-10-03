@@ -150,10 +150,65 @@ char computer_play(struct player* target);
  */
 char user_play(struct player* target);
 
+/*
+ * Function: print_user_book
+ * -------------------
+ *
+ *   Print the users book onto a single line with spacing
+ *
+ *   target: the player's book to check
+ *
+ *   returns:
+ */
 void print_user_book(struct player* target);
+
+/*
+ * Function: validate_player_input
+ * -------------------
+ *
+ *   Validates that the 2 char user input is a valid rank
+ *
+ *   Input: The 2 char array representing the rank to check
+ *
+ *   returns: 1 if true, 0 if false
+ */
 int validate_player_input(char input[2]);
+
+/*
+ * Function: get_player_input
+ * -------------------
+ *
+ *   Get the rank from the user and return the char array
+ *
+ *   prompt: The text to display to the user
+ *
+ *   returns: char[2] rank array
+ */
 char* get_player_input(char* prompt);
+
+/*
+ * Function: view_hand
+ * -------------------
+ *
+ *   Print the targets hand to stdout
+ *
+ *   target: the player's hand to view
+ *
+ *   returns: 0 on success
+ */
 int view_hand(struct player* target);
+
+/*
+ * Function: print_hand_card_of_rank
+ * -------------------
+ *
+ *   When a rank is selected, print all of rank out onto stdout
+ *
+ *   target: the player's hand to check
+ *   rank: The rank to print out
+ *
+ *   returns:
+ */
 void print_hand_card_of_rank(struct player* target, char rank);
 
 #endif

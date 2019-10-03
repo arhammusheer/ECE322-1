@@ -50,9 +50,9 @@ int main(int args, char* argv[])
 		//end of game printouts here
 
 		if(winner == 1){ //player wins
-			printf("You win!");
+			printf("You win!\n");
 		}else{ //computer wins
-			printf("Computer wins!");
+			printf("Computer wins!\n");
 		}
 		
 		//ask if want to play again

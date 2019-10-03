@@ -82,7 +82,8 @@ char check_add_book(struct player* target){
 
                 remove_card(target,&newcard);
             }
-            memcpy(target->book, &vcards.ranks[i][0],1);
+            target->book[target->book_size] = vcards.ranks[i][0];
+            target->book_size++;
             return vcards.ranks[i][0];
         }
         topHand = target->card_list;
@@ -144,6 +145,7 @@ int reset_player(struct player* target){
     memset(target->book, '\0', 7);
     target->card_list = NULL;
     target->hand_size = 0;
+    target->book_size = 0;
 
 	return 0;
 }

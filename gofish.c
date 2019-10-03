@@ -112,7 +112,7 @@ void player_turn(struct player* player1, struct player* player2){
 
 	//check if any books were completed
 	if(check_add_book(player1))
-	    printf("   - %s Books %c\n",player1->name, input_rank);
+	    printf("   - %s Books %2s\n",player1->name, get_complete_char(player1->book[player1->book_size-1]));
 	if(start_turn==which_player)
 	    printf("   - %s gets another turn\n",player1->name);
 

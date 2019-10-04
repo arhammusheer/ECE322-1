@@ -6,7 +6,7 @@ int view_hand(struct player* target){
     struct hand* topHand;
     topHand = target->card_list;
     while(topHand){
-		printf("%c%c%c", topHand->top.rank[0], topHand->top.rank[1], topHand->top.suit);
+		printf("%c%c%c ", topHand->top.rank[0], topHand->top.rank[1], topHand->top.suit);
         topHand = topHand->next;
     }
     printf("\n");

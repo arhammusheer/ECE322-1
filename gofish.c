@@ -96,13 +96,12 @@ void player_turn(struct player* player1, struct player* player2){
 		//hand over matching cards
 		transfer_cards(player2, player1, input_rank);
         //Player gets another turn
-        which_player = which_player % 2 + 1;
+        which_player = start_turn;
 	}else{
 		//draw a card from the deck, if it matches the requested rank, player gets another turn
 		struct card* drawn_card = next_card();
 		if(compare_card_rank(drawn_card, input_rank)){
-
-			which_player = which_player % 2 + 1;
+			which_player = start_turn;
 		}
 		add_card(player1, drawn_card);
 		// player has already changed so check if it is player 2 turns
@@ -115,7 +114,7 @@ void player_turn(struct player* player1, struct player* player2){
 	//check if any books were completed
 	if(check_add_book(player1)) {
         printf("   - %s Books %2s\n", player1->name, get_complete_char(player1->book[player1->book_size - 1]));
-        which_player = which_player % 2 + 1;
+        which_player = start_turn; //player goes again
     }
 	if(start_turn==which_player)
 	    printf("   - %s gets another turn\n",player1->name);

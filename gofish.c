@@ -47,7 +47,9 @@ int main(int args, char* argv[])
 
 		}
 		//end of game printouts here
-
+        view_hand(&user);
+        print_user_book(&user);
+        print_user_book(&computer);
 		if(winner == 1){ //player wins
 			printf("You win!");
 		}else{ //computer wins

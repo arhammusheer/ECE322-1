@@ -47,6 +47,7 @@ int main(int args, char* argv[])
 
 		}
 		//end of game printouts here
+        printf("\n------------------------------\n");
         view_hand(&user);
         print_user_book(&user);
         print_user_book(&computer);

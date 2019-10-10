@@ -49,11 +49,11 @@ int main(int args, char* argv[])
 		//end of game printouts here
 
 		if(winner == 1){ //player wins
-			printf("You win!\n");
+			printf("You win!");
 		}else{ //computer wins
-			printf("Computer wins!\n");
+			printf("Computer wins!");
 		}
-		
+		printf(" %i-%i\n", user.book_size, computer.book_size);
 		//ask if want to play again
 		running = ask_if_restart("Play again? [y/n]:\n");
 	}

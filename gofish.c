@@ -10,7 +10,6 @@ int running;
 struct player* current_player;
 struct player* opposite_player;
 
-
 int main(int args, char* argv[]) 
 {
 	running = 1;

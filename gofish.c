@@ -60,6 +60,7 @@ int main(int args, char* argv[])
 }
 
 void player_turn(struct player* player1, struct player* player2){
+	printf("\n------------------------------\n");
     char input_rank;
     int start_turn = which_player;
     // Always view the users hand on turn and both books

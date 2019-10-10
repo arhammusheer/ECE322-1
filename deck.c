@@ -17,6 +17,7 @@ int shuffle(){
 	}
 	
 	//shuffle the deck
+	printf("Shuffling the deck...\n");
 	for(int i = 0; i < 52; i++){
 		int random_index = rand() % 52;
 		swap_cards(i, random_index);

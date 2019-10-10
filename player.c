@@ -209,7 +209,9 @@ void print_hand_card_of_rank(struct player* target, char rank){
     struct hand* topHand;
     topHand = target->card_list;
     while(topHand){
+        if(compare_card_rank(&topHand->top, rank)) {
             printf("%c%c%c ", topHand->top.rank[0], topHand->top.rank[1], topHand->top.suit);
         }
         topHand = topHand->next;
+    }
 }

@@ -212,5 +212,4 @@ void print_hand_card_of_rank(struct player* target, char rank){
             printf("%c%c%c ", topHand->top.rank[0], topHand->top.rank[1], topHand->top.suit);
         }
         topHand = topHand->next;
-    }
 }

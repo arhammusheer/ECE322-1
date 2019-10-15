@@ -1,6 +1,0 @@
-#!/bin/bash
-mkdir ../assignment2
-find . -name \*.txt -exec cp {} ../assignment2 \;
-find . -name \*.h -exec cp {} ../assignment2 \; 
-find . -name \*.c -exec cp {} ../assignment2 \; 
-find . -name \Makefile -exec cp {} ../assignment2 \; 

@@ -42,6 +42,13 @@ int verbose = 0;            /* if true, print additional output */
 int nextjid = 1;            /* next job ID to allocate */
 char sbuf[MAXLINE];         /* for composing sprintf messages */
 
+struct string_list {
+	char* s;
+	struct string_list next;
+}
+
+struct string_list s_list_head;
+
 struct job_t {              /* The job struct */
     pid_t pid;              /* job PID */
     int jid;                /* job ID [1, 2, ...] */
@@ -163,8 +170,43 @@ int main(int argc, char **argv)
  * background children don't receive SIGINT (SIGTSTP) from the kernel
  * when we type ctrl-c (ctrl-z) at the keyboard.  
 */
-void eval(char *cmdline) 
+void eval(char *cmdline) //Ben
 {
+	char* args[50]; //hopefully not more than 50 arguments on the command line
+	
+	//check if built_in command
+	if(builtin_cmd(args)){
+		return; //command was built in, we're done here
+	}
+	
+	//parse line
+	int run_bg = parseline(cmdline, args);
+	
+	pid_t id = 3;
+	int job_state = (run_bg)? BG : FG;
+	//figure out full file path vs filename
+	char* path = strcat("/bin/", args[0]);
+	
+	//attempt to add a new job
+	if(addjob(jobs, id, job_state, cmdline)){
+		if(fork() == 0){
+			//child runs job
+			execve(path, args, environ); //I hope environ is the environment for the new program
+		}else{
+			//parent does whatever
+			if(!run_bg){
+				waitfg(id);
+			}else{
+				//program in background, parent continues as normal
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
     return;
 }
 
@@ -245,8 +287,16 @@ void do_bgfg(char **argv)
 /* 
  * waitfg - Block until process pid is no longer the foreground process
  */
-void waitfg(pid_t pid)
+void waitfg(pid_t pid) //Ben
 {
+	//block signals
+	sigset_t mask, prev_mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+	sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+	//sigprocmask function
+	//unblocking:
+	//sigprocmask(SIG_SETMASK, &prev_mask, NULL)
     return;
 }
 
@@ -271,8 +321,9 @@ void sigchld_handler(int sig)
  *    user types ctrl-c at the keyboard.  Catch it and send it along
  *    to the foreground job.  
  */
-void sigint_handler(int sig) 
+void sigint_handler(int sig) //Ben
 {
+	pid_t fg_id = fgpid(jobs);
     return;
 }
 
@@ -281,8 +332,9 @@ void sigint_handler(int sig)
  *     the user types ctrl-z at the keyboard. Catch it and suspend the
  *     foreground job by sending it a SIGTSTP.  
  */
-void sigtstp_handler(int sig) 
+void sigtstp_handler(int sig) //Ben
 {
+	pid_t fg_id = fgpid(jobs);
     return;
 }
 

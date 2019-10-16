@@ -25,6 +25,7 @@
 #define BG 2    /* running in background */
 #define ST 3    /* stopped */
 
+
 /* 
  * Jobs states: FG (foreground), BG (background), ST (stopped)
  * Job state transitions and enabling actions:
@@ -42,11 +43,6 @@ int verbose = 0;            /* if true, print additional output */
 int nextjid = 1;            /* next job ID to allocate */
 char sbuf[MAXLINE];         /* for composing sprintf messages */
 
-struct string_list {
-	char* s;
-	struct string_list next;
-}
-
 struct string_list s_list_head;
 
 struct job_t {              /* The job struct */
@@ -60,6 +56,9 @@ struct job_t jobs[MAXJOBS]; /* The job list */
 
 
 /* Function prototypes */
+
+int contains(char* s, char c);
+int get_num_jobs(struct job_t *jobs);
 
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
@@ -158,6 +157,49 @@ int main(int argc, char **argv)
 
     exit(0); /* control never reaches here */
 }
+
+/*
+ * contains - Returns whether a string contains a given character
+ * 
+ * Parameters:
+ * s - string
+ * c - character to search for
+ *
+ * Returns:
+ * 1 if string contains the character
+ * 0 if character not found in the string
+*/
+
+int contains(char* s, char c){
+	char iter = s[0];
+	while(iter != '\0'){
+		if(iter == c){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * get_num_jobs - Iterates through a job array to count the number of scheduled jobs
+ * 
+ * Parameters:
+ * jobs - pointer to job struct array
+ *
+ * Returns:
+ * number of jobs whose state is not UNDEF
+*/
+
+int get_num_jobs(struct job_t *jobs){
+	int count = 0;
+	for(int i = 0; i < MAXJOBS; i++){
+		if(jobs[i].state != UNDEF){
+			count++;
+		}
+	}
+	return count;
+}
+
   
 /* 
  * eval - Evaluate the command line that the user has just typed in
@@ -182,32 +224,40 @@ void eval(char *cmdline) //Ben
 	//parse line
 	int run_bg = parseline(cmdline, args);
 	
-	pid_t id = 3;
+	pid_t id;
 	int job_state = (run_bg)? BG : FG;
-	//figure out full file path vs filename
-	char* path = strcat("/bin/", args[0]);
 	
-	//attempt to add a new job
-	if(addjob(jobs, id, job_state, cmdline)){
-		if(fork() == 0){
+	//figure out full file path vs filename
+	char* path;
+	if(contains(args[0], '/')){
+		path = args[0];
+	}else{
+		path = strcat("/bin/", args[0]);
+	}
+	
+	if(get_num_jobs(jobs) < MAXJOBS){
+		id = fork();
+		if(id == 0){
 			//child runs job
 			execve(path, args, environ); //I hope environ is the environment for the new program
 		}else{
-			//parent does whatever
+			//add job to list
+			addjob(jobs, id, job_state, cmdline);
 			if(!run_bg){
+				//parent needs to display stdout of child? how to do?
+				
+				//wait for foreground process to complete
 				waitfg(id);
 			}else{
 				//program in background, parent continues as normal
 			}
 		}
+	}else{
+		//job list already full!
+		
 	}
 	
-	
-	
-	
-	
-	
-    return;
+	return;
 }
 
 /* 
@@ -289,7 +339,18 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid) //Ben
 {
-	//block signals
+	sigset_t mask, prev_mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGCHLD);
+	sigaddset(&mask, SIGTSTP);
+	sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+	
+	while(fgpid(jobs) == pid){
+		sigsuspend(&prev_mask);
+	}
+	
+	/*block signals
 	sigset_t mask, prev_mask;
 	sigemptyset(&mask);
 	sigaddset(&mask, SIGINT);
@@ -297,6 +358,7 @@ void waitfg(pid_t pid) //Ben
 	//sigprocmask function
 	//unblocking:
 	//sigprocmask(SIG_SETMASK, &prev_mask, NULL)
+	*/
     return;
 }
 
@@ -324,6 +386,7 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
+	job_t fg_job = getjobpid(jobs, fg_id);
     return;
 }
 
@@ -335,6 +398,8 @@ void sigint_handler(int sig) //Ben
 void sigtstp_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
+	job_t fg_job = getjobpid(jobs, fg_id);
+	kill(fg_id, SIGTSTP);//?
     return;
 }
 

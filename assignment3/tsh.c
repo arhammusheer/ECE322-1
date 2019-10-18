@@ -171,11 +171,13 @@ int main(int argc, char **argv)
 */
 
 int contains(char* s, char c){
+	int idx = 1;
 	char iter = s[0];
 	while(iter != '\0'){
 		if(iter == c){
 			return 1;
 		}
+		iter = s[idx++];
 	}
 	return 0;
 }

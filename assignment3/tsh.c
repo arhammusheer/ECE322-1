@@ -229,9 +229,9 @@ void eval(char *cmdline) //Ben
 	
 	//figure out full file path vs filename
 	char* path;
-	if(contains(args[0], '/')){
+	if(contains(args[0], '/')){//file path
 		path = args[0];
-	}else{
+	}else{//file name
 		path = strcat("/bin/", args[0]);
 	}
 	

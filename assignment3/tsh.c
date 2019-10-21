@@ -352,6 +352,12 @@ void waitfg(pid_t pid) //Ben
 		sigsuspend(&prev_mask);
 	}
 	
+	/*
+	rather wasteful, but simple
+	while(fgpid(jobs) == pid){
+		sleep(1);
+	}
+	
 	/*block signals
 	sigset_t mask, prev_mask;
 	sigemptyset(&mask);

@@ -242,7 +242,7 @@ void eval(char *cmdline) //Ben
 		if(id == 0){
 			//child runs job
 			execve(path, args, environ); //I hope environ is the environment for the new program
-		}else{
+		}else{//parent
 			//add job to list
 			addjob(jobs, id, job_state, cmdline);
 			if(!run_bg){
@@ -390,7 +390,7 @@ void sigint_handler(int sig) //Ben
 	pid_t fg_id = fgpid(jobs);
 	job_t fg_job = getjobpid(jobs, fg_id);
 	fg_job.state = UNDEF;
-	kill(fg_id, SIGINT);
+	kill(fg_id * -1, SIGINT);
     return;
 }
 
@@ -404,7 +404,7 @@ void sigtstp_handler(int sig) //Ben
 	pid_t fg_id = fgpid(jobs);
 	job_t fg_job = getjobpid(jobs, fg_id);
 	fg_job.state = ST;
-	kill(fg_id, SIGTSTP);//is it this simple?
+	kill(fg_id * -1, SIGTSTP);//is it this simple?
     return;
 }
 

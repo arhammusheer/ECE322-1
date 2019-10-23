@@ -383,6 +383,14 @@ void waitfg(pid_t pid) //Ben
  */
 void sigchld_handler(int sig) 
 {
+	pid_t pid;
+	int process_status;
+
+	// Request status for all zombie child processes and dont block the program execution
+	while ((pid = waitpid(-1, &process_status, WNOHANG) > 0)) {
+
+	}
+
     return;
 }
 

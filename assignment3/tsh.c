@@ -8,9 +8,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <errno.h>
 
  /* Misc manifest constants */
@@ -413,14 +413,37 @@ void waitfg(pid_t pid) //Ben
   */
 void sigchld_handler(int sig)
 {
+	int olderrno = errno; // Save old error
 	pid_t pid;
 	int process_status;
 
-	// Request status for all zombie child processes and dont block the program execution
-	while ((pid = waitpid(-1, &process_status, WNOHANG) > 0)) {
+	sigset_t mask, prev_mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &mask, &prev_mask); // Block new sigchild execution
 
+	// Request status for all zombie child processes and dont block the program execution
+	if ((pid = waitpid(-1, &process_status, WNOHANG)) < 0) {
+		// Error Handle here
 	}
 
+	if (WIFEXITED(process_status) {
+		// Normal Term
+		deletejob(jobs, pid);
+	}
+	if (WIFSIGNALED(process_status)) {
+		// Uncaught signal exit
+	}
+	if (WIFSTOPPED(process_status)) {
+		// Stopped process
+	}
+
+	deletejob(jobs, pid);
+
+	sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+	
+
+	errno = olderrno; // Return error to prior value
 	return;
 }
 

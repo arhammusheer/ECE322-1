@@ -43,7 +43,6 @@ int verbose = 0;            /* if true, print additional output */
 int nextjid = 1;            /* next job ID to allocate */
 char sbuf[MAXLINE];         /* for composing sprintf messages */
 
-struct string_list s_list_head;
 
 struct job_t {              /* The job struct */
 	pid_t pid;              /* job PID */
@@ -331,28 +330,28 @@ int parseline(const char* cmdline, char** argv)
  */
 int builtin_cmd(char** argv)
 {
-	char builtin_cmds[4][4] = { "fg", "bg", "quit", "jobs" };
+	char builtin_cmds[4][5] = { "fg", "bg", "quit", "jobs" };
 	int job_type = 0;
 	// Loop through the arg commands and check for builtin commands
-	for (int i = 0; i < MAXARGS; i++) {
-		for (int j = 0; j < 4; j++) {
-			if (strcmp(argv[i], builtin_cmds[j]) == 0)
-				jobtype = j + 1;
-		}
-	}
-	if (jobtype == 0) {
+    for (int j = 0; j < 4; j++) {
+        if (strcmp(*argv, builtin_cmds[j]) == 0)
+            job_type = j + 1;
+    }
+
+	if (job_type == 0) {
 		return 0; /*No builtin command detected*/
 	}
-	char job[4] = builtin_cmds[jobtype - 1];
-	if (jobtype > 3) {
+	char job[4];
+	strcpy(job,builtin_cmds[job_type - 1]);
+	if (job_type < 3) {
 		do_bgfg(argv); // Jobtype less than 3 means either fg or bg job
 		return 1;
 	}
-	if (jobtype == 4) {
-		listjobs(&jobs); // List jobs command
+	if (job_type == 4) {
+		listjobs(jobs); // List jobs command
 		return 1;
 	}
-	if (jobtype == 5) {
+	if (job_type == 3) {
 		exit(1); // Quit command so exit the shell
 	}
 	return 1;     /*Program never reaches here*/
@@ -427,7 +426,7 @@ void sigchld_handler(int sig)
 		// Error Handle here
 	}
 
-	if (WIFEXITED(process_status) {
+	if (WIFEXITED(process_status)) {
 		// Normal Term
 		deletejob(jobs, pid);
 	}
@@ -455,7 +454,7 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
-	job_t fg_job = getjobpid(jobs, fg_id);
+	struct job_t fg_job = *getjobpid(jobs, fg_id);
 	fg_job.state = UNDEF;
 	fg_job.pid = 0;
 	kill(fg_id * -1, SIGINT);
@@ -470,7 +469,7 @@ void sigint_handler(int sig) //Ben
 void sigtstp_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
-	job_t fg_job = getjobpid(jobs, fg_id);
+	struct job_t fg_job = *getjobpid(jobs, fg_id);
 	fg_job.state = ST;
 	fg_job.pid = 0;
 	kill(fg_id * -1, SIGTSTP);//is it this simple?

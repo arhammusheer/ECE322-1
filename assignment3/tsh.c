@@ -231,12 +231,13 @@ void eval(char* cmdline) //Ben
 	int job_state = (run_bg) ? BG : FG;
 
 	//figure out full file path vs filename
-	char* path;
+	char path[MAXLINE];
 	if (contains(args[0], '/')) {//file path
-		path = args[0];
+		strcpy(path, args[0]);
 	}
 	else {//file name
-		path = strcat("/bin/", args[0]);
+	    strcat(path, "/bin/");
+		strcat(path, args[0]);
 	}
 
 	if (get_num_jobs(jobs) < MAXJOBS) {
@@ -362,6 +363,39 @@ int builtin_cmd(char** argv)
  */
 void do_bgfg(char** argv)
 {
+    char arg2[MAXLINE];
+    pid_t job_val;
+    if(!*(argv + 1)){
+        printf("Incorrect bg/fg")
+       return;
+    }
+    strcpy(arg2, *(argv + 1));
+    if(arg2[0] == '%'){
+        // Check if job param is in job form
+        job_val = (pid_t) atoi(strtok(arg2, "%"));
+
+    }
+    else{
+        // job param is in pid form
+        job_val = (pid_t) atoi(arg2);
+    }
+    struct job_t* requested_job;
+    requested_job = getjobpid(jobs, job_val);
+    if(requested_job == NULL){
+        // Job not found
+        printf("Job ID %i not found", job_val);
+        return;
+    }
+    if(contains("bg", *argv) == 0){
+        // Run background case
+        requested_job->state = BG;
+        kill(SIGCONT, job_val);
+    }
+    if(contains("fg", *argv)==0){
+        // Run Foreground case
+        requested_job->state = FG;
+        waitfg(job_val);
+    }
 	return;
 }
 

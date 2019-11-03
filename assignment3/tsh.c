@@ -266,7 +266,7 @@ void eval(char* cmdline) //Ben
 
 	}
 	memset(path, 0, strlen(path));
-    //free(path);
+    free(path);
 	return;
 }
 
@@ -683,20 +683,6 @@ void listjob(struct job_t* jobs)
 
         if (jobs[0].pid != 0) {
             printf("[%d] (%d) ", jobs[0].jid, jobs[0].pid);
-            switch (jobs[0].state) {
-                case BG:
-                    printf("Running ");
-                    break;
-                case FG:
-                    printf("Foreground ");
-                    break;
-                case ST:
-                    printf("Stopped ");
-                    break;
-                default:
-                    printf("listjobs: Internal error: job[%d].state=%d ",
-                           0, jobs[0].state);
-            }
             printf("%s", jobs[0].cmdline);
         }
 

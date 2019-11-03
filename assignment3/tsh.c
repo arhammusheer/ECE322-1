@@ -244,6 +244,9 @@ void eval(char* cmdline) //Ben
 		if (id == 0) {
 			//child runs job
 			execve(path, args, environ); //I hope environ is the environment for the new program
+			char buffer[50];
+			sprintf(buffer, "%s: Command not found", path);
+			puts(buffer);
 		}
 		else {//parent
 		   //add job to list
@@ -257,8 +260,9 @@ void eval(char* cmdline) //Ben
 			}
 			else {
 				//program in background, parent continues as normal
+				listjob(requested_job);
 			}
-			listjob(requested_job);
+			
 		}
 	}
 	else {
@@ -366,40 +370,65 @@ int builtin_cmd(char** argv)
 void do_bgfg(char** argv)
 {
     static char arg2[MAXLINE];
+	int is_job_id = 0;
     struct job_t* requested_job;
     pid_t job_val;
     if(!*(argv + 1)){
-        puts("Incorrect bg/fg");
+		char buffer[50];
+		sprintf(buffer, "%s command requires PID or %%jobid argument", argv[0]);
+        puts(buffer);
        return;
     }
+	strcpy(arg2, *(argv + 1));
+	if(arg2[0] == '%'){
+		is_job_id = 1;
+		job_val = atoi(strtok(arg2, "%"));
+	}else{
+		job_val = atoi(arg2);
+	}
+	if(!job_val){
+		char buffer[50];
+		sprintf(buffer, "%s argument must be a PID or %%jobid", argv[0]);
+        puts(buffer);
+       return;
+	}
     strcpy(arg2, *(argv + 1));
-    if(arg2[0] == '%'){
+    if(is_job_id){
         // Check if job param is in job form
         job_val = atoi(strtok(arg2, "%"));
         requested_job = getjobjid(jobs, job_val);
-
+		if(requested_job == NULL){
+			// Job not found
+			printf("%%%i: No such job\n", job_val);
+			return;
+		}
     }
+
     else{
         // job param is in pid form
         job_val = (pid_t) atoi(arg2);
         requested_job = getjobpid(jobs, job_val);
+		if(requested_job == NULL){
+			// Job not found
+			printf("(%i): No such process\n", job_val);
+			return;
+		}
     }
 
 
-    if(requested_job == NULL){
-        // Job not found
-        printf("Job ID %i not found", job_val);
-        return;
-    }
-    if(contains("bg", *argv) == 0){
+    
+	job_val = requested_job->pid;
+    if(strcmp("bg", argv[0]) == 0){
         // Run background case
         requested_job->state = BG;
-        kill(SIGCONT, job_val);
+        kill(job_val, SIGCONT);
+		listjob(requested_job);
     }
-    if(contains("fg", *argv)==0){
+    if(strcmp("fg", argv[0])==0){
         // Run Foreground case
         requested_job->state = FG;
         job_val = requested_job->pid;
+		kill(job_val, SIGCONT);
         waitfg(job_val);
     }
 	return;
@@ -412,6 +441,7 @@ void waitfg(pid_t pid) //Ben
 {
 	sigset_t mask, prev_mask;
 	sigemptyset(&mask);
+	sigemptyset(&prev_mask);
 	sigaddset(&mask, SIGINT);
 	sigaddset(&mask, SIGCHLD);
 	sigaddset(&mask, SIGTSTP);
@@ -468,17 +498,21 @@ void sigchld_handler(int sig)
 	if ((pid = waitpid(-1, &process_status, WNOHANG)) < 0) {
 		// Error Handle here
 	}
+	
+	//while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
 
 	if (WIFEXITED(process_status)) {
 		// Normal Term
+		deletejob(jobs, pid);
 	}
 	if (WIFSIGNALED(process_status)) {
 		// Uncaught signal exit
+		deletejob(jobs, pid);
 	}
 	if (WIFSTOPPED(process_status)) {
 		// Stopped process
 	}
-	deletejob(jobs, pid);
+	
 
 	sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
 	
@@ -499,11 +533,12 @@ void sigint_handler(int sig) //Ben
 	int j_id = fg_job->jid;
 	int j_pid = fg_job->pid;
 	char buffer[50];
-	sprintf(buffer, "Killed job [%i], pid: (%i)\n", j_id, j_pid);
+	sprintf(buffer, "Job [%i] (%i) terminated by signal 2", j_id, j_pid);
 	puts(buffer);
 	fg_job->state = UNDEF;
 	fg_job->pid = 0;
-	kill(fg_id * -1, SIGINT);
+	kill(fg_id * -1, SIGKILL);
+	deletejob(jobs, fg_id);
 	return;
 }
 
@@ -519,11 +554,11 @@ void sigtstp_handler(int sig) //Ben
 	int j_id = fg_job->jid;
 	int j_pid = fg_job->pid;
 	char buffer[50];
-	sprintf(buffer, "Stopped job [%i], pid: (%i)\n", j_id, j_pid);
+	sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
 	puts(buffer);
 	fg_job->state = ST;
 	//fg_job.pid = 0;
-	kill(fg_id * -1, SIGTSTP);//is it this simple?
+	kill(fg_id * -1, SIGSTOP);//is it this simple?
 	return;
 }
 

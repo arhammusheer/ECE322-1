@@ -248,7 +248,6 @@ void eval(char* cmdline) //Ben
 		}
 		else {//parent
 		   //add job to list
-		   printf("Adding job to list...");
 			addjob(jobs, id, job_state, cmdline);
 			if (!run_bg) {
 				//parent needs to display stdout of child? how to do?

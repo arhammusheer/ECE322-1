@@ -445,13 +445,13 @@ void waitfg(pid_t pid) //Ben
 	sigaddset(&mask, SIGINT);
 	sigaddset(&mask, SIGCHLD);
 	sigaddset(&mask, SIGTSTP);
-	sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+	//sigprocmask(SIG_BLOCK, &mask, &prev_mask);
 
 	while (fgpid(jobs) == pid) {
-		sigsuspend(&prev_mask);
-	}
+        //sigsuspend(&prev_mask);
+    }
 	
-    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+    //sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	/*
 	rather wasteful, but simple
 	while(fgpid(jobs) == pid){
@@ -483,39 +483,33 @@ void waitfg(pid_t pid) //Ben
   */
 void sigchld_handler(int sig)
 {
+
 	int olderrno = errno; // Save old error
 	pid_t pid;
 	int process_status;
 
 	sigset_t mask, prev_mask;
-	sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    sigaddset(&mask, SIGCHLD);
-    sigaddset(&mask, SIGTSTP);
-	sigprocmask(SIG_BLOCK, &mask, &prev_mask); // Block new sigchild execution
-
+	sigfillset(&mask);
 	// Request status for all zombie child processes and dont block the program execution
-	if ((pid = waitpid(-1, &process_status, WNOHANG)) < 0) {
-		// Error Handle here
-	}
-	
-	//while (waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-
-	if (WIFEXITED(process_status)) {
-		// Normal Term
-		deletejob(jobs, pid);
-	}
-	if (WIFSIGNALED(process_status)) {
-		// Uncaught signal exit
-		deletejob(jobs, pid);
-	}
-	if (WIFSTOPPED(process_status)) {
-		// Stopped process
-	}
-	
-
-	sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
-	
+	while((pid = waitpid(-1, &process_status, WNOHANG | WUNTRACED)) > 0) {
+        // Error Handle here
+        sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+        struct job_t *fg_job = getjobpid(jobs, pid);
+        if (WIFEXITED(process_status)) {
+            // Normal Term
+            //sigint_handler(sig);
+            deletejob(jobs, pid);
+        }
+        if (WIFSIGNALED(process_status)) {
+            // Uncaught signal exit
+            deletejob(jobs, pid);
+        }
+        if (WIFSTOPPED(process_status)) {
+            // Stopped process
+            fg_job->state = ST;
+        }
+        sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+    }
 
 	errno = olderrno; // Return error to prior value
 	return;

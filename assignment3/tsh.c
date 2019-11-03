@@ -231,7 +231,7 @@ void eval(char* cmdline) //Ben
 	int job_state = (run_bg) ? BG : FG;
 
 	//figure out full file path vs filename
-	char path[MAXLINE];
+	char *path = malloc(MAXLINE);
 	if (contains(args[0], '/')) {//file path
 		strcpy(path, args[0]);
 	}
@@ -239,7 +239,7 @@ void eval(char* cmdline) //Ben
 	    strcat(path, "/bin/");
 		strcat(path, args[0]);
 	}
-
+    printf("PATH: %s\n", path);
 	if (get_num_jobs(jobs) < MAXJOBS) {
 		id = fork();
 		if (id == 0) {
@@ -264,7 +264,8 @@ void eval(char* cmdline) //Ben
 		//job list already full!
 
 	}
-
+	memset(path, 0, strlen(path));
+    free(path);
 	return;
 }
 
@@ -353,7 +354,7 @@ int builtin_cmd(char** argv)
 		return 1;
 	}
 	if (job_type == 3) {
-		exit(1); // Quit command so exit the shell
+		exit(0); // Quit command so exit the shell
 	}
 	return 1;     /*Program never reaches here*/
 }
@@ -363,10 +364,10 @@ int builtin_cmd(char** argv)
  */
 void do_bgfg(char** argv)
 {
-    char arg2[MAXLINE];
+    static char arg2[MAXLINE];
     pid_t job_val;
     if(!*(argv + 1)){
-        printf("Incorrect bg/fg")
+        printf("Incorrect bg/fg");
        return;
     }
     strcpy(arg2, *(argv + 1));
@@ -414,7 +415,7 @@ void waitfg(pid_t pid) //Ben
 	while (fgpid(jobs) == pid) {
 		sigsuspend(&prev_mask);
 	}
-
+    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	/*
 	rather wasteful, but simple
 	while(fgpid(jobs) == pid){
@@ -452,7 +453,9 @@ void sigchld_handler(int sig)
 
 	sigset_t mask, prev_mask;
 	sigemptyset(&mask);
-	sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGTSTP);
 	sigprocmask(SIG_BLOCK, &mask, &prev_mask); // Block new sigchild execution
 
 	// Request status for all zombie child processes and dont block the program execution
@@ -462,7 +465,6 @@ void sigchld_handler(int sig)
 
 	if (WIFEXITED(process_status)) {
 		// Normal Term
-		deletejob(jobs, pid);
 	}
 	if (WIFSIGNALED(process_status)) {
 		// Uncaught signal exit
@@ -470,7 +472,6 @@ void sigchld_handler(int sig)
 	if (WIFSTOPPED(process_status)) {
 		// Stopped process
 	}
-
 	deletejob(jobs, pid);
 
 	sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
@@ -725,7 +726,7 @@ handler_t* Signal(int signum, handler_t* handler)
  */
 void sigquit_handler(int sig)
 {
-	printf("Terminating after receipt of SIGQUIT signal\n");
+    puts("Terminating after receipt of SIGQUIT signal\n");
 	exit(1);
 }
 

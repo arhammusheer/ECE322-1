@@ -83,7 +83,7 @@ struct job_t* getjobpid(struct job_t* jobs, pid_t pid);
 struct job_t* getjobjid(struct job_t* jobs, int jid);
 int pid2jid(pid_t pid);
 void listjobs(struct job_t* jobs);
-
+void listjob(struct job_t* jobs);
 void usage(void);
 void unix_error(char* msg);
 void app_error(char* msg);
@@ -239,7 +239,6 @@ void eval(char* cmdline) //Ben
 	    strcat(path, "/bin/");
 		strcat(path, args[0]);
 	}
-    printf("PATH: %s\n", path);
 	if (get_num_jobs(jobs) < MAXJOBS) {
 		id = fork();
 		if (id == 0) {
@@ -249,6 +248,7 @@ void eval(char* cmdline) //Ben
 		else {//parent
 		   //add job to list
 			addjob(jobs, id, job_state, cmdline);
+            struct job_t* requested_job = getjobpid(jobs, id);
 			if (!run_bg) {
 				//parent needs to display stdout of child? how to do?
 
@@ -258,6 +258,7 @@ void eval(char* cmdline) //Ben
 			else {
 				//program in background, parent continues as normal
 			}
+			listjob(requested_job);
 		}
 	}
 	else {
@@ -265,7 +266,7 @@ void eval(char* cmdline) //Ben
 
 	}
 	memset(path, 0, strlen(path));
-    //free(path);
+    free(path);
 	return;
 }
 
@@ -353,7 +354,7 @@ int builtin_cmd(char** argv)
 		return 1;
 	}
 	if (job_type == 3) {
-		kill(0, 9); // Quit command so exit the shell
+		exit(0); // Quit command so exit the shell
 		return 0;
 	}
 	return 1;     /*Program never reaches here*/
@@ -675,6 +676,16 @@ void listjobs(struct job_t* jobs)
 			printf("%s", jobs[i].cmdline);
 		}
 	}
+}
+void listjob(struct job_t* jobs)
+{
+    int i;
+
+        if (jobs[0].pid != 0) {
+            printf("[%d] (%d) ", jobs[0].jid, jobs[0].pid);
+            printf("%s", jobs[0].cmdline);
+        }
+
 }
 /******************************
  * end job list helper routines

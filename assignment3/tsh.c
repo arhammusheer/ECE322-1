@@ -489,9 +489,9 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
-	struct job_t fg_job = *getjobpid(jobs, fg_id);
-	fg_job.state = UNDEF;
-	fg_job.pid = 0;
+	struct job_t* fg_job = getjobpid(jobs, fg_id);
+	fg_job->state = UNDEF;
+	fg_job->pid = 0;
 	kill(fg_id * -1, SIGINT);
 	return;
 }
@@ -504,9 +504,9 @@ void sigint_handler(int sig) //Ben
 void sigtstp_handler(int sig) //Ben
 {
 	pid_t fg_id = fgpid(jobs);
-	struct job_t fg_job = *getjobpid(jobs, fg_id);
-	fg_job.state = ST;
-	fg_job.pid = 0;
+	struct job_t* fg_job = getjobpid(jobs, fg_id);
+	fg_job->state = ST;
+	//fg_job.pid = 0;
 	kill(fg_id * -1, SIGTSTP);//is it this simple?
 	return;
 }

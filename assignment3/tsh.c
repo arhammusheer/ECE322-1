@@ -366,6 +366,7 @@ int builtin_cmd(char** argv)
 void do_bgfg(char** argv)
 {
     static char arg2[MAXLINE];
+    struct job_t* requested_job;
     pid_t job_val;
     if(!*(argv + 1)){
         puts("Incorrect bg/fg");
@@ -374,15 +375,17 @@ void do_bgfg(char** argv)
     strcpy(arg2, *(argv + 1));
     if(arg2[0] == '%'){
         // Check if job param is in job form
-        job_val = (pid_t) atoi(strtok(arg2, "%"));
+        job_val = atoi(strtok(arg2, "%"));
+        requested_job = getjobjid(jobs, job_val);
 
     }
     else{
         // job param is in pid form
         job_val = (pid_t) atoi(arg2);
+        requested_job = getjobpid(jobs, job_val);
     }
-    struct job_t* requested_job;
-    requested_job = getjobpid(jobs, job_val);
+
+
     if(requested_job == NULL){
         // Job not found
         printf("Job ID %i not found", job_val);
@@ -396,6 +399,7 @@ void do_bgfg(char** argv)
     if(contains("fg", *argv)==0){
         // Run Foreground case
         requested_job->state = FG;
+        job_val = requested_job->pid;
         waitfg(job_val);
     }
 	return;

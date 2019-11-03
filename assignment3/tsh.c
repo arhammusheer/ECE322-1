@@ -265,7 +265,7 @@ void eval(char* cmdline) //Ben
 
 	}
 	memset(path, 0, strlen(path));
-    free(path);
+    //free(path);
 	return;
 }
 
@@ -343,8 +343,7 @@ int builtin_cmd(char** argv)
 	if (job_type == 0) {
 		return 0; /*No builtin command detected*/
 	}
-	char job[4];
-	strcpy(job,builtin_cmds[job_type - 1]);
+
 	if (job_type < 3) {
 		do_bgfg(argv); // Jobtype less than 3 means either fg or bg job
 		return 1;
@@ -354,7 +353,8 @@ int builtin_cmd(char** argv)
 		return 1;
 	}
 	if (job_type == 3) {
-		exit(0); // Quit command so exit the shell
+		kill(0, 9); // Quit command so exit the shell
+		return 0;
 	}
 	return 1;     /*Program never reaches here*/
 }
@@ -367,7 +367,7 @@ void do_bgfg(char** argv)
     static char arg2[MAXLINE];
     pid_t job_val;
     if(!*(argv + 1)){
-        printf("Incorrect bg/fg");
+        puts("Incorrect bg/fg");
        return;
     }
     strcpy(arg2, *(argv + 1));

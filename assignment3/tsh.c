@@ -474,22 +474,30 @@ void sigchld_handler(int sig)
 	sigset_t mask, prev_mask;
 	sigfillset(&mask);
 	// Request status for all zombie child processes and dont block the program execution
-	while((pid = waitpid(-1, &process_status, WNOHANG | WUNTRACED)) > 0) {
+	if((pid = waitpid(-1, &process_status, WNOHANG | WUNTRACED)) > 0) {
         // Error Handle here
         sigprocmask(SIG_BLOCK, &mask, &prev_mask);
         struct job_t *fg_job = getjobpid(jobs, pid);
+        int j_id = fg_job->jid;
+        int j_pid = fg_job->pid;
         if (WIFEXITED(process_status)) {
             // Normal Term
-            //sigint_handler(sig);
+
             deletejob(jobs, pid);
         }
-        if (WIFSIGNALED(process_status)) {
+        else if (WIFSIGNALED(process_status)) {
             // Uncaught signal exit
+            char buffer[50];
+            sprintf(buffer, "Job [%i] (%i) terminated by signal 2", j_id, j_pid);
+            puts(buffer);
             deletejob(jobs, pid);
         }
-        if (WIFSTOPPED(process_status)) {
+        else if (WIFSTOPPED(process_status)) {
             // Stopped process
             fg_job->state = ST;
+            char buffer[50];
+            sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
+            puts(buffer);
         }
         sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
     }

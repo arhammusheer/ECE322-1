@@ -402,7 +402,7 @@ void do_bgfg(char** argv)
 		if(requested_job == NULL){
 			// Job not found
             char buffer[50];
-			sprintf(buffer, "%%%i: No such job\n", job_val);
+			sprintf(buffer, "%%%i: No such job", job_val);
 			puts(buffer);
 			return;
 		}
@@ -415,7 +415,7 @@ void do_bgfg(char** argv)
 		if(requested_job == NULL){
 			// Job not found
             char buffer[50];
-			sprintf(buffer, "(%i): No such process\n", job_val);
+			sprintf(buffer, "(%i): No such process", job_val);
 			puts(buffer);
 			return;
 		}
@@ -478,6 +478,10 @@ void sigchld_handler(int sig)
         // Error Handle here
         sigprocmask(SIG_BLOCK, &mask, &prev_mask);
         struct job_t *fg_job = getjobpid(jobs, pid);
+        if(!fg_job){
+            sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+            return;
+        }
         int j_id = fg_job->jid;
         int j_pid = fg_job->pid;
         if (WIFEXITED(process_status)) {
@@ -494,6 +498,10 @@ void sigchld_handler(int sig)
         }
         else if (WIFSTOPPED(process_status)) {
             // Stopped process
+            if(fg_job->state == ST){
+                sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+                return;
+            }
             fg_job->state = ST;
             char buffer[50];
             sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
@@ -520,9 +528,6 @@ void sigint_handler(int sig) //Ben
 	char buffer[50];
 	sprintf(buffer, "Job [%i] (%i) terminated by signal 2", j_id, j_pid);
 	puts(buffer);
-	fg_job->state = UNDEF;
-	fg_job->pid = 0;
-
     sigset_t mask, prev_mask;
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, &prev_mask);

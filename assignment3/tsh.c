@@ -1,7 +1,7 @@
 /*
  * tsh - A tiny shell program with job control
  *
- * <Put your name and login ID here>
+ * Bradley Zylstra 30799320 bzylstra@umass.edu
  */
 #include <stdio.h>
 #include <stdlib.h>

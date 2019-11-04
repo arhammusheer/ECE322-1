@@ -244,11 +244,13 @@ void eval(char* cmdline) //Ben
 		if (id == 0) {
 			//child runs job
 			setpgid(0,0);
-			execve(path, args, environ); //I hope environ is the environment for the new program
-			char buffer[50];
-			sprintf(buffer, "%s: Command not found", path);
-			puts(buffer);
-			exit(0);
+			if(execve(path, args, environ)){ //I hope environ is the environment for the new program
+				//if returns, then there was some error
+				char buffer[50];
+				sprintf(buffer, "%s: Command not found", path);
+				puts(buffer);
+				exit(0);
+			}
 		}
 		else {//parent
 		   //add job to list
@@ -549,13 +551,36 @@ void sigint_handler(int sig) //Ben
 	int j_id = fg_job->jid;
 	int j_pid = fg_job->pid;
 	char buffer[50];
-	sprintf(buffer, "Job [%i] (%i) terminated by signal 2", j_id, j_pid);
+	sprintf(buffer, "Job [%i] (%i) terminated by signal %i", j_id, j_pid, sig);
 	puts(buffer);
     sigset_t mask, prev_mask;
     sigfillset(&mask);
-    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	killpg(getpgid(fg_id), SIGINT);
-    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+    if(sigprocmask(SIG_BLOCK, &mask, &prev_mask)){
+		//if error in sigprocmask
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in sigprocmask: %i", err);
+		puts(buffer);
+	}
+	if(killpg(getpgid(fg_id), SIGINT)){
+		//if error in killpg
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in killpg: %i", err);
+		if(getpgid(fg_id)){
+			//error was actually due to getpgid
+			int err2 = errno;
+			sprintf(buffer, "Error in getpgid: %i", err2);
+		}
+		puts(buffer);
+	}
+    if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
+		//if error in sigprocmask
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in sigprocmask: %i", err);
+		puts(buffer);
+	}
 	deletejob(jobs, fg_id);
 	return;
 }
@@ -572,15 +597,38 @@ void sigtstp_handler(int sig) //Ben
 	int j_id = fg_job->jid;
 	int j_pid = fg_job->pid;
 	char buffer[50];
-	sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
+	sprintf(buffer, "Job [%i] (%i) stopped by signal %i", j_id, j_pid, sig);
 	puts(buffer);
 	fg_job->state = ST;
 	//fg_job.pid = 0;
     sigset_t mask, prev_mask;
     sigfillset(&mask);
-    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	killpg(getpgid(fg_id), SIGTSTP);//is it this simple?
-    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+    if(sigprocmask(SIG_BLOCK, &mask, &prev_mask)){
+		//if error in sigprocmask
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in sigprocmask: %i", err);
+		puts(buffer);
+	}
+	if(killpg(getpgid(fg_id), SIGINT)){
+		//if error in killpg
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in killpg: %i", err);
+		if(getpgid(fg_id)){
+			//error was actually due to getpgid
+			int err2 = errno;
+			sprintf(buffer, "Error in getpgid: %i", err2);
+		}
+		puts(buffer);
+	}
+    if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
+		//if error in sigprocmask
+		int err = errno;
+		char buffer[50];
+		sprintf(buffer, "Error in sigprocmask: %i", err);
+		puts(buffer);
+	}
 	return;
 }
 

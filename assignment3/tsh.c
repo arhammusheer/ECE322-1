@@ -248,6 +248,7 @@ void eval(char* cmdline) //Ben
 			char buffer[50];
 			sprintf(buffer, "%s: Command not found", path);
 			puts(buffer);
+			exit(0);
 		}
 		else {//parent
 		   //add job to list
@@ -448,9 +449,9 @@ void waitfg(pid_t pid) //Ben
 	sigaddset(&mask, SIGTSTP);
 	//sigprocmask(SIG_BLOCK, &mask, &prev_mask);
 
-	while (fgpid(jobs) == pid) {
-        //sigsuspend(&prev_mask);
-    }
+	//while (fgpid(jobs) == pid) {
+	sigsuspend(&prev_mask);
+    //}
 	
     //sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	/*

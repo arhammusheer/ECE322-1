@@ -243,6 +243,7 @@ void eval(char* cmdline) //Ben
 		id = fork();
 		if (id == 0) {
 			//child runs job
+			setpgid(0,0);
 			execve(path, args, environ); //I hope environ is the environment for the new program
 			char buffer[50];
 			sprintf(buffer, "%s: Command not found", path);
@@ -250,7 +251,7 @@ void eval(char* cmdline) //Ben
 		}
 		else {//parent
 		   //add job to list
-			addjob(jobs, id, job_state, cmdline);
+            addjob(jobs, id, job_state, cmdline);
             struct job_t* requested_job = getjobpid(jobs, id);
 			if (!run_bg) {
 				//parent needs to display stdout of child? how to do?
@@ -421,14 +422,14 @@ void do_bgfg(char** argv)
     if(strcmp("bg", argv[0]) == 0){
         // Run background case
         requested_job->state = BG;
-        kill(job_val, SIGCONT);
+        killpg(getpgid(job_val), SIGCONT);
 		listjob(requested_job);
     }
     if(strcmp("fg", argv[0])==0){
         // Run Foreground case
         requested_job->state = FG;
         job_val = requested_job->pid;
-		kill(job_val, SIGCONT);
+		killpg(getpgid(job_val), SIGCONT);
         waitfg(job_val);
     }
 	return;
@@ -535,7 +536,7 @@ void sigint_handler(int sig) //Ben
     sigset_t mask, prev_mask;
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	kill(fg_id * -1, SIGKILL);
+	killpg(getpgid(fg_id), SIGKILL);
     sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	deletejob(jobs, fg_id);
 	return;
@@ -560,7 +561,7 @@ void sigtstp_handler(int sig) //Ben
     sigset_t mask, prev_mask;
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	kill((fg_id) * -1, SIGTSTP);//is it this simple?
+	killpg(getpgid(fg_id), SIGTSTP);//is it this simple?
     sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	return;
 }

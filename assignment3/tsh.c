@@ -361,7 +361,6 @@ int builtin_cmd(char** argv)
 	}
 	if (job_type == 3) {
 		exit(0); // Quit command so exit the shell
-		return 0;
 	}
 	return 1;     /*Program never reaches here*/
 }
@@ -375,6 +374,7 @@ void do_bgfg(char** argv)
 	int is_job_id = 0;
     struct job_t* requested_job;
     pid_t job_val;
+    // If there is no second argument, print error and quit
     if(!*(argv + 1)){
 		char buffer[50];
 		sprintf(buffer, "%s command requires PID or %%jobid argument", argv[0]);
@@ -382,12 +382,14 @@ void do_bgfg(char** argv)
        return;
     }
 	strcpy(arg2, *(argv + 1));
+    // Get the integer value from the second argument, could be either PID or JID
 	if(arg2[0] == '%'){
 		is_job_id = 1;
 		job_val = atoi(strtok(arg2, "%"));
 	}else{
 		job_val = atoi(arg2);
 	}
+	// If the integer is invalid, quit
 	if(!job_val){
 		char buffer[50];
 		sprintf(buffer, "%s: argument must be a PID or %%jobid", argv[0]);
@@ -395,9 +397,8 @@ void do_bgfg(char** argv)
        return;
 	}
     strcpy(arg2, *(argv + 1));
+	// If in job ID form, do the processing
     if(is_job_id){
-        // Check if job param is in job form
-        job_val = atoi(strtok(arg2, "%"));
         requested_job = getjobjid(jobs, job_val);
 		if(requested_job == NULL){
 			// Job not found
@@ -422,19 +423,25 @@ void do_bgfg(char** argv)
     }
 
 
-    
+    // Get the pid of the requested job in case it was previously in JID form
 	job_val = requested_job->pid;
     if(strcmp("bg", argv[0]) == 0){
         // Run background case
         requested_job->state = BG;
-        killpg(getpgid(job_val), SIGCONT);
+        if(killpg(getpgid(job_val), SIGCONT)){
+            puts("killpg in do_bgfg failed to run!");
+            return;
+        }
+
 		listjob(requested_job);
     }
     if(strcmp("fg", argv[0])==0){
         // Run Foreground case
         requested_job->state = FG;
-        job_val = requested_job->pid;
-		killpg(getpgid(job_val), SIGCONT);
+        if(killpg(getpgid(job_val), SIGCONT)){
+            puts("killpg in do_bgfg failed to run!");
+            return;
+        }
         waitfg(job_val);
     }
 	return;
@@ -466,40 +473,52 @@ void waitfg(pid_t pid) //Ben
   */
 void sigchld_handler(int sig)
 {
-
+    // Save old error and create locals for later use
 	int olderrno = errno; // Save old error
 	pid_t pid;
 	int process_status;
 
+	// Create 2 masks and fill mask to block
 	sigset_t mask, prev_mask;
 	sigfillset(&mask);
-	// Request status for all zombie child processes and dont block the program execution
+	// Request status for all zombie child processes, dont block the program execution, and report stopped processes
+	// If valid PID is found, run below code
 	if((pid = waitpid(-1, &process_status, WNOHANG | WUNTRACED)) > 0) {
-        // Error Handle here
-        sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-        struct job_t *fg_job = getjobpid(jobs, pid);
-        if(!fg_job){
-            sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+	    // Block any new signals during processing
+        if(sigprocmask(SIG_BLOCK, &mask, &prev_mask)){
+            puts("sigprocmask in sigchld_handler failed to run!");
             return;
         }
+        // Get job_t struct and check if job has been removed, if so then return from this function
+        struct job_t *fg_job = getjobpid(jobs, pid);
+        if(!fg_job){
+            // Set mask to old mask
+            if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
+                puts("sigprocmask in sigchld_handler failed to run!");
+            };
+            return;
+        }
+        // Store PID and JID
         int j_id = fg_job->jid;
         int j_pid = fg_job->pid;
-        if (WIFEXITED(process_status)) {
-            // Normal Term
 
+        if (WIFEXITED(process_status)) {
+            // Normal Termination in this block, just remove job from joblist
             deletejob(jobs, pid);
         }
         else if (WIFSIGNALED(process_status)) {
-            // Uncaught signal exit
+            // Uncaught signal exit, most likely SIGINT. Remove job from joblist
             char buffer[50];
             sprintf(buffer, "Job [%i] (%i) terminated by signal 2", j_id, j_pid);
             puts(buffer);
             deletejob(jobs, pid);
         }
         else if (WIFSTOPPED(process_status)) {
-            // Stopped process
+            // Stopped process. Set jobstate to Stopped unless jobstate is already stopped
             if(fg_job->state == ST){
-                sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+                if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
+                    puts("sigprocmask in sigchld_handler failed to run!");
+                }
                 return;
             }
             fg_job->state = ST;
@@ -507,7 +526,11 @@ void sigchld_handler(int sig)
             sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
             puts(buffer);
         }
-        sigprocmask(SIG_SETMASK, &prev_mask, NULL); // Set mask to old mask
+        // Set the signal mask back to the old value
+        if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
+            puts("sigprocmask in sigchld_handler failed to run!");
+            return;
+        }
     }
 
 	errno = olderrno; // Return error to prior value

@@ -531,7 +531,12 @@ void sigint_handler(int sig) //Ben
 	puts(buffer);
 	fg_job->state = UNDEF;
 	fg_job->pid = 0;
+
+    sigset_t mask, prev_mask;
+    sigfillset(&mask);
+    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
 	kill(fg_id * -1, SIGKILL);
+    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	deletejob(jobs, fg_id);
 	return;
 }
@@ -552,7 +557,11 @@ void sigtstp_handler(int sig) //Ben
 	puts(buffer);
 	fg_job->state = ST;
 	//fg_job.pid = 0;
-	kill(fg_id * -1, SIGSTOP);//is it this simple?
+    sigset_t mask, prev_mask;
+    sigfillset(&mask);
+    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+	kill((fg_id) * -1, SIGTSTP);//is it this simple?
+    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	return;
 }
 

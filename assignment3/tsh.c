@@ -610,7 +610,7 @@ void sigtstp_handler(int sig) //Ben
 		sprintf(buffer, "Error in sigprocmask: %i", err);
 		puts(buffer);
 	}
-	if(killpg(getpgid(fg_id), SIGINT)){
+	if(killpg(getpgid(fg_id), SIGTSTP)){
 		//if error in killpg
 		int err = errno;
 		char buffer[50];

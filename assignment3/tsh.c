@@ -390,7 +390,7 @@ void do_bgfg(char** argv)
 	}
 	if(!job_val){
 		char buffer[50];
-		sprintf(buffer, "%s argument must be a PID or %%jobid", argv[0]);
+		sprintf(buffer, "%s: argument must be a PID or %%jobid", argv[0]);
         puts(buffer);
        return;
 	}
@@ -401,7 +401,9 @@ void do_bgfg(char** argv)
         requested_job = getjobjid(jobs, job_val);
 		if(requested_job == NULL){
 			// Job not found
-			printf("%%%i: No such job\n", job_val);
+            char buffer[50];
+			sprintf(buffer, "%%%i: No such job\n", job_val);
+			puts(buffer);
 			return;
 		}
     }
@@ -412,7 +414,9 @@ void do_bgfg(char** argv)
         requested_job = getjobpid(jobs, job_val);
 		if(requested_job == NULL){
 			// Job not found
-			printf("(%i): No such process\n", job_val);
+            char buffer[50];
+			sprintf(buffer, "(%i): No such process\n", job_val);
+			puts(buffer);
 			return;
 		}
     }
@@ -441,34 +445,11 @@ void do_bgfg(char** argv)
  */
 void waitfg(pid_t pid) //Ben
 {
-	sigset_t mask, prev_mask;
-	sigemptyset(&mask);
+	sigset_t prev_mask;
 	sigemptyset(&prev_mask);
-	sigaddset(&mask, SIGINT);
-	sigaddset(&mask, SIGCHLD);
-	sigaddset(&mask, SIGTSTP);
-	//sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+	while(fgpid(jobs) == pid)
+	    sigsuspend(&prev_mask);
 
-	//while (fgpid(jobs) == pid) {
-	sigsuspend(&prev_mask);
-    //}
-	
-    //sigprocmask(SIG_SETMASK, &prev_mask, NULL);
-	/*
-	rather wasteful, but simple
-	while(fgpid(jobs) == pid){
-		sleep(1);
-	}
-
-	/*block signals
-	sigset_t mask, prev_mask;
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGINT);
-	sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	//sigprocmask function
-	//unblocking:
-	//sigprocmask(SIG_SETMASK, &prev_mask, NULL)
-	*/
 	return;
 }
 
@@ -537,7 +518,7 @@ void sigint_handler(int sig) //Ben
     sigset_t mask, prev_mask;
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, &prev_mask);
-	killpg(getpgid(fg_id), SIGKILL);
+	killpg(getpgid(fg_id), SIGINT);
     sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	deletejob(jobs, fg_id);
 	return;

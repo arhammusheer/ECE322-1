@@ -401,7 +401,7 @@ void* mm_malloc (size_t size) {
 	  size_t newBlockSize = SIZE(ptrFreeBlock) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
 	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock)-ALIGNMENT))) = newBlockSize | TAG_PRECEDING_USED;
-	  
+	  insertFreeBlock(newFreeBlock);
   }
   
   

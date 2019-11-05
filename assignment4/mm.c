@@ -377,6 +377,38 @@ void* mm_malloc (size_t size) {
     // Round up for correct alignment
     reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT);
   }
+  
+  //search the list for a free block
+  void* freeBlock = searchFreeList(reqSize);
+  //free block can be larger than the requested size
+  
+  if(freeblock == NULL){
+	  //no block large enough, request more heap memory and call malloc again
+	  requestMoreSpace();
+	  return mm_malloc(size);
+  }else{
+	  //cast to a BlockInfo pointer
+	  ptrFreeBlock = (BlockInfo*) freeBlock;
+  }
+  
+  //remove the block from the list and check its size
+  //if the block has extra space greater than or equal to the minimum block size, split into two blocks
+  removeFreeBlock(ptrFreeBlock);
+  if(ptrFreeBlock->sizeAndTags >= reqSize + MIN_BLOCK_SIZE){
+	  BlockInfo* newFreeBlock = ptrFreeBlock + reqSize / WORD_SIZE;
+	  //add size, tags, footer
+	  size_t newBlockSize = SIZE(ptrFreeBlock) - reqSize;
+	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
+	  
+	  
+  }
+  
+  
+  //add the new, smaller free block back to the list
+  
+  
+  //return a pointer to the part of the allocated block after the size and tags
+  
 
   // Implement mm_malloc.  You can change or remove any of the above
   // code.  It is included as a suggestion of where to start.

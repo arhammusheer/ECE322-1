@@ -388,18 +388,19 @@ void* mm_malloc (size_t size) {
 	  return mm_malloc(size);
   }else{
 	  //cast to a BlockInfo pointer
-	  ptrFreeBlock = (BlockInfo*) freeBlock;
+	  ptrFreeBlock = (BlockInfo*) freeBlock; 
   }
   
   //remove the block from the list and check its size
   //if the block has extra space greater than or equal to the minimum block size, split into two blocks
   removeFreeBlock(ptrFreeBlock);
-  if(ptrFreeBlock->sizeAndTags >= reqSize + MIN_BLOCK_SIZE){
-	  BlockInfo* newFreeBlock = ptrFreeBlock + reqSize / WORD_SIZE;
+  if(SIZE(ptrFreeBlock) >= reqSize + MIN_BLOCK_SIZE){
+	  //split remaining space into new free block
+	  BlockInfo* newFreeBlock = (BlockInfo*) UNSCALED_POINTER_ADD(ptrFeeBlock, reqSize);
 	  //add size, tags, footer
 	  size_t newBlockSize = SIZE(ptrFreeBlock) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
-	  
+	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock)-ALIGNMENT))) = newBlockSize | TAG_PRECEDING_USED;
 	  
   }
   

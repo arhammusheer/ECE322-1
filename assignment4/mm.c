@@ -143,7 +143,7 @@ static void * searchFreeList(size_t reqSize) {
 
 BlockInfo* createFreeBlock(size_t block_size, void* starting_ptr) {
 	BlockInfo* newBlock = (BlockInfo*) starting_ptr;
-	size_t prior_block_used = *((size_t*)UNSCALED_POINTER_SUB(blockCursor, WORD_SIZE));
+	size_t prior_block_used = *((size_t*)UNSCALED_POINTER_SUB(starting_ptr, WORD_SIZE));
 	size_t is_used = prior_block_used & TAG_USED;
 	newBlock->sizeAndTags = block_size | (is_used << 1);
 	newBlock->next = NULL;
@@ -153,16 +153,16 @@ BlockInfo* createFreeBlock(size_t block_size, void* starting_ptr) {
 	return NULL;
 }
 
-static void setBlockUsedStatus(BlockInfo* block, int used_status) {
+static void setBlockUsedStatus(BlockInfo* block, unsigned int used_status) {
 	/*
 	Set the current block status and prior block status to used_status. Does not remove/add block to free list
 	
 	*/
 	size_t block_size = SIZE(block->sizeAndTags);
 	size_t *preceding_block_header = (size_t*)UNSCALED_POINTER_ADD(block, block_size);
-	preceding_block_header = SIZE(*preceding_block_header) | (used_status << 1);
+	*preceding_block_header = SIZE(*preceding_block_header) | (used_status << 1);
 	block->sizeAndTags = block_size | used_status;
-	*((size_t*)UNSCALED_POINTER_ADD(newBlock, SIZE(newBlock->sizeAndTags) - WORD_SIZE)) = newBlock->sizeAndTags;
+	*((size_t*)UNSCALED_POINTER_ADD(block, SIZE(block->sizeAndTags) - WORD_SIZE)) = block->sizeAndTags;
 }
 
 

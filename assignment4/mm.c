@@ -159,10 +159,19 @@ static void setBlockUsedStatus(BlockInfo* block, unsigned int used_status) {
 	
 	*/
 	size_t block_size = SIZE(block->sizeAndTags);
-	size_t *preceding_block_header = (size_t*)UNSCALED_POINTER_ADD(block, block_size);
-	*preceding_block_header = SIZE(*preceding_block_header) | (used_status << 1);
+	size_t *following_block_header = (size_t*)UNSCALED_POINTER_ADD(block, block_size);
+	*following_block_header = SIZE(*following_block_header) | (used_status << 1);
+	// If free block, update boundary tag as well
+	if(*following_block_header & TAG_USED){
+	    size_t *following_block_footer = (size_t*)UNSCALED_POINTER_ADD(following_block_header,SIZE(*following_block_header));
+	    *following_block_footer = *following_block_header;
+	}
+	// Update block tag
 	block->sizeAndTags = block_size | used_status;
-	*((size_t*)UNSCALED_POINTER_ADD(block, SIZE(block->sizeAndTags) - WORD_SIZE)) = block->sizeAndTags;
+	// if setting to free, add boundary tag
+	if(!used_status) {
+        *((size_t *) UNSCALED_POINTER_ADD(block, SIZE(block->sizeAndTags) - WORD_SIZE)) = block->sizeAndTags;
+    }
 }
 
 

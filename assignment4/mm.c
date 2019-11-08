@@ -140,7 +140,14 @@ static void * searchFreeList(size_t reqSize) {
   }
   return NULL;
 }
-           
+
+BlockInfo* createFreeBlock(size_t block_size, void* starting_ptr) {
+	return NULL;
+}
+
+
+
+
 /* Insert freeBlock at the head of the list.  (LIFO) */
 static void insertFreeBlock(BlockInfo* freeBlock) {
   BlockInfo* oldHead = FREE_LIST_HEAD;

@@ -409,9 +409,9 @@ void* mm_malloc (size_t size) {
   void* freeBlock = searchFreeList(reqSize);
   //free block can be larger than the requested size
   
-  if(freeblock == NULL){
+  if(freeBlock == NULL){
 	  //no block large enough, request more heap memory and call malloc again
-	  requestMoreSpace();
+	  requestMoreSpace(size);
 	  return mm_malloc(size);
   }else{
 	  //cast to a BlockInfo pointer
@@ -421,13 +421,13 @@ void* mm_malloc (size_t size) {
   //remove the block from the list and check its size
   //if the block has extra space greater than or equal to the minimum block size, split into two blocks
   removeFreeBlock(ptrFreeBlock);
-  if(SIZE(ptrFreeBlock) >= reqSize + MIN_BLOCK_SIZE){
+  if(SIZE(ptrFreeBlock->sizeAndTags) >= reqSize + MIN_BLOCK_SIZE){
 	  //split remaining space into new free block
-	  BlockInfo* newFreeBlock = (BlockInfo*) UNSCALED_POINTER_ADD(ptrFeeBlock, reqSize);
+	  BlockInfo* newFreeBlock = (BlockInfo*) UNSCALED_POINTER_ADD(ptrFreeBlock, reqSize);
 	  //add size, tags, footer
-	  size_t newBlockSize = SIZE(ptrFreeBlock) - reqSize;
+	  size_t newBlockSize = SIZE(ptrFreeBlock->sizeAndTags) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
-	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock)-ALIGNMENT))) = newBlockSize | TAG_PRECEDING_USED;
+	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock->sizeAndTags)-ALIGNMENT))) = newBlockSize | TAG_PRECEDING_USED;
 	  insertFreeBlock(newFreeBlock);
   }
   

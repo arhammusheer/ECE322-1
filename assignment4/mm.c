@@ -429,6 +429,7 @@ void* mm_malloc (size_t size) {
   
   //remove the block from the list and check its size
   //if the block has extra space greater than or equal to the minimum block size, split into two blocks
+  
   removeFreeBlock(ptrFreeBlock);
   if(SIZE(ptrFreeBlock->sizeAndTags) >= reqSize + MIN_BLOCK_SIZE){
 	  //split remaining space into new free block
@@ -437,20 +438,19 @@ void* mm_malloc (size_t size) {
 	  size_t newBlockSize = SIZE(ptrFreeBlock->sizeAndTags) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
 	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock->sizeAndTags)-ALIGNMENT))) = newBlockSize | TAG_PRECEDING_USED;
+	  //add the new, smaller free block back to the list
 	  insertFreeBlock(newFreeBlock);
   }
   
-  
-  //add the new, smaller free block back to the list
-  
+  //mark ptrFreeBlock as used
+  ptrFreeBlock->sizeAndTags |= TAG_USED;
   
   //return a pointer to the part of the allocated block after the size and tags
-  
+  return UNSCALED_POINTER_ADD(ptrFreeBlock, sizeof(ptrFreeBlock->sizeAndTags));
 
   // Implement mm_malloc.  You can change or remove any of the above
   // code.  It is included as a suggestion of where to start.
   // You will want to replace this return statement...
-  return NULL; 
 }
 
 /* Free the block referenced by ptr. */

@@ -15,9 +15,10 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <unistd.h>
-
+#include <stdint.h>
 #include "memlib.h"
 #include "mm.h"
+
 
 /* Macros for unscaled pointer arithmetic to keep other code cleaner.  
    Casting to a char* has the effect that pointer arithmetic happens at
@@ -74,7 +75,7 @@ struct BlockInfo {
 };
 typedef struct BlockInfo BlockInfo;
 
-
+int coal = 0;
 /* Pointer to the first BlockInfo in the free list, the list's head. 
    
    A pointer to the head of the free list in this implementation is
@@ -141,43 +142,29 @@ static void * searchFreeList(size_t reqSize) {
   return NULL;
 }
 
-BlockInfo* createFreeBlock(size_t block_size, void* starting_ptr) {
-	BlockInfo* newBlock = (BlockInfo*) starting_ptr;
-	newBlock->sizeAndTags = block_size;
-	newBlock->next = NULL;
-	newBlock->prev = NULL;
-	setBlockUsedStatus(newBlock, 0);
-	return newBlock;
-}
+static void* searchFreeListBestFit(size_t reqSize) {
+	BlockInfo* freeBlock;
+	BlockInfo* bestBlock = NULL;
+	size_t best_size = SIZE_MAX;
 
-void setBlockUsedStatus(BlockInfo* block, unsigned int used_status) {
-	/*
-	Set the current block status and prior block status to used_status. Does not remove/add block to free list
-	
-	*/
-	size_t block_size = SIZE(block->sizeAndTags);
-
-
-	size_t *following_block_header = (size_t*)UNSCALED_POINTER_ADD(block, block_size);
-	block->sizeAndTags = SIZE(*following_block_header) | (used_status << 1);
-	// If free block, update boundary tag as well
-	if((*following_block_header & TAG_USED) == 0){
-	    size_t *following_block_footer = (size_t*)UNSCALED_POINTER_ADD(following_block_header,SIZE(*following_block_header));
-	    following_block_footer = following_block_header;
+	freeBlock = FREE_LIST_HEAD;
+	while (freeBlock != NULL) {
+		size_t current_size = SIZE(freeBlock->sizeAndTags);
+		if (current_size >= reqSize && current_size<best_size) {
+			bestBlock = freeBlock;
+			best_size = current_size;
+			if (current_size == reqSize)
+				return bestBlock;
+		}
+		else {
+			freeBlock = freeBlock->next;
+		}
 	}
-	// Update block tag
-	block->sizeAndTags = block_size | used_status;
-	// if setting to free, add boundary tag
-	if(!used_status) {
-        *((size_t *) UNSCALED_POINTER_ADD(block, SIZE(block->sizeAndTags) - WORD_SIZE)) = block->sizeAndTags;
-    }
+	return bestBlock;
 }
-
-
-
-
 /* Insert freeBlock at the head of the list.  (LIFO) */
 static void insertFreeBlock(BlockInfo* freeBlock) {
+
   BlockInfo* oldHead = FREE_LIST_HEAD;
   freeBlock->next = oldHead;
   if (oldHead != NULL) {
@@ -185,10 +172,52 @@ static void insertFreeBlock(BlockInfo* freeBlock) {
   }
   //  freeBlock->prev = NULL;
   FREE_LIST_HEAD = freeBlock;
+  
+    // Code for inserting based on memory size
+	/*
+	freeBlock->next = NULL;
+	freeBlock->prev = NULL;
+	// Places elements based on their memory size
+	BlockInfo* oldHead = FREE_LIST_HEAD;
+	// Case where there is no freeblocks
+	if (!oldHead) {
+		freeBlock->prev = NULL;
+		FREE_LIST_HEAD = freeBlock;
+		return;
+	}
+
+
+	size_t free_size = SIZE(freeBlock->sizeAndTags);
+	int i = 0;
+	while (oldHead->next) {
+		if(free_size <= SIZE(oldHead->sizeAndTags))
+			break;
+		i++;
+		oldHead = oldHead->next;
+	}
+	BlockInfo* prior = oldHead->prev;
+	
+	if (prior) {
+		prior->next = freeBlock;
+		freeBlock->prev = prior;
+	}
+	// Case where we are inserting at beginning of list
+	else {
+		freeBlock->prev = NULL;
+		FREE_LIST_HEAD = freeBlock;
+	}
+	// Case where we are inserting at end of list
+	oldHead->prev = freeBlock;
+	freeBlock->next = oldHead;
+	*/
+
+	
+
 }      
 
 /* Remove a free block from the free list. */
 static void removeFreeBlock(BlockInfo* freeBlock) {
+
   BlockInfo *nextFree, *prevFree;
   
   nextFree = freeBlock->next;
@@ -206,6 +235,7 @@ static void removeFreeBlock(BlockInfo* freeBlock) {
   } else {
     prevFree->next = nextFree;
   }
+
 }
 
 /* Coalesce 'oldBlock' with any preceeding or following free blocks. */
@@ -256,7 +286,7 @@ static void coalesceFreeBlock(BlockInfo* oldBlock) {
   if (newSize != oldSize) {
     // Remove the original block from the free list
     removeFreeBlock(oldBlock);
-
+	coal = 1;
     // Save the new size in the block info and in the boundary tag
     // and tag it to show the preceding block is used (otherwise, it
     // would have become part of this one!).
@@ -387,6 +417,27 @@ int mm_init () {
 
 // TOP-LEVEL ALLOCATOR INTERFACE ------------------------------------
 
+/* This implements a deferrred scheme */
+void* coalesce_all() {
+
+	BlockInfo* oldHead = FREE_LIST_HEAD;
+	if (!oldHead) {
+		return;
+	}
+
+	BlockInfo* nextBlock = oldHead->next;
+	while (nextBlock) {
+		coalesceFreeBlock(oldHead);
+		if (coal) {
+			coal = 0;
+			coalesce_all();
+			return;
+		}
+		oldHead = nextBlock;
+		nextBlock = oldHead->next;
+	}
+
+}
 
 /* Allocate a block of size size and return a pointer to it. */
 void* mm_malloc (size_t size) {
@@ -414,17 +465,31 @@ void* mm_malloc (size_t size) {
   }
   
   //search the list for a free block
-  void* freeBlock = searchFreeList(reqSize);
+  void* freeBlock = searchFreeListBestFit(reqSize);
+  //void* freeBlock = searchFreeList(reqSize);
   //free block can be larger than the requested size
   
   if(freeBlock == NULL){
-	  //no block large enough, request more heap memory and call malloc again
-	  requestMoreSpace(reqSize);
-	  freeBlock = searchFreeList(reqSize);
+	  //no block large enough, request more heap memory and search again
+	  // deferrred scheme
+	  //requestMoreSpace(reqSize);
+	  coalesce_all();
+
+	  // Best Fit
+	  freeBlock = searchFreeListBestFit(reqSize);
+	  //freeBlock = searchFreeList(reqSize);
+	  if (freeBlock == NULL) {
+		  requestMoreSpace(reqSize);
+		  freeBlock = searchFreeListBestFit(reqSize);
+		  //freeBlock = searchFreeList(reqSize);
+	  }
+	  
   }
 
 	//cast to a BlockInfo pointer
 	ptrFreeBlock = (BlockInfo*) freeBlock; 
+
+	// Save the preceding block use tag in case we need to remake the free block
 	precedingBlockUseTag = ptrFreeBlock->sizeAndTags & TAG_PRECEDING_USED;
   
   //remove the block from the list and check its size
@@ -432,8 +497,13 @@ void* mm_malloc (size_t size) {
   
   removeFreeBlock(ptrFreeBlock);
   if(SIZE(ptrFreeBlock->sizeAndTags) >= (reqSize + MIN_BLOCK_SIZE)){
+
 	  //split remaining space into new free block
 	  BlockInfo* newFreeBlock = (BlockInfo*) UNSCALED_POINTER_ADD(ptrFreeBlock, reqSize);
+	  newFreeBlock->next = NULL;
+	  newFreeBlock->prev = NULL;
+
+
 	  //add size, tags, footer
 	  size_t newBlockSize = SIZE(ptrFreeBlock->sizeAndTags) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
@@ -477,13 +547,12 @@ void mm_free (void *ptr) {
   followingBlock->sizeAndTags = followingBlock->sizeAndTags & (~TAG_PRECEDING_USED);
 
   *((size_t*)UNSCALED_POINTER_ADD(blockInfo, SIZE(blockInfo->sizeAndTags) - WORD_SIZE)) = blockInfo->sizeAndTags;
-  // Implement mm_free.  You can change or remove the declaraions
-  // above.  They are included as minor hints.
-  //blockInfo = createFreeBlock((size_t) SIZE(blockInfo->sizeAndTags), (void*) blockInfo);
-  //setBlockUsedStatus(blockInfo, 0);
+
 
 
   insertFreeBlock(blockInfo);
+
+  // Either Coalesce Here or when there are no more free spaces
   //coalesceFreeBlock(blockInfo);
 }
 

@@ -155,10 +155,9 @@ static void* searchFreeListBestFit(size_t reqSize) {
 			best_size = current_size;
 			if (current_size == reqSize)
 				return bestBlock;
+
 		}
-		else {
-			freeBlock = freeBlock->next;
-		}
+		freeBlock = freeBlock->next;
 	}
 	return bestBlock;
 }
@@ -465,23 +464,23 @@ void* mm_malloc (size_t size) {
   }
   
   //search the list for a free block
-  void* freeBlock = searchFreeListBestFit(reqSize);
-  //void* freeBlock = searchFreeList(reqSize);
+  //void* freeBlock = searchFreeListBestFit(reqSize);
+  void* freeBlock = searchFreeList(reqSize);
   //free block can be larger than the requested size
   
   if(freeBlock == NULL){
 	  //no block large enough, request more heap memory and search again
 	  // deferrred scheme
-	  //requestMoreSpace(reqSize);
-	  coalesce_all();
+	  requestMoreSpace(reqSize);
+	  //coalesce_all();
 
 	  // Best Fit
-	  freeBlock = searchFreeListBestFit(reqSize);
-	  //freeBlock = searchFreeList(reqSize);
+	  //freeBlock = searchFreeListBestFit(reqSize);
+	  freeBlock = searchFreeList(reqSize);
 	  if (freeBlock == NULL) {
 		  requestMoreSpace(reqSize);
-		  freeBlock = searchFreeListBestFit(reqSize);
-		  //freeBlock = searchFreeList(reqSize);
+		  //freeBlock = searchFreeListBestFit(reqSize);
+		  freeBlock = searchFreeList(reqSize);
 	  }
 	  
   }
@@ -521,9 +520,7 @@ void* mm_malloc (size_t size) {
   //mark ptrFreeBlock as used
   ptrFreeBlock->sizeAndTags |= TAG_USED;
 
-  
-  //setBlockUsedStatus(ptrFreeBlock, 1);
-  
+    
   //return a pointer to the part of the allocated block after the size and tags
   return UNSCALED_POINTER_ADD(ptrFreeBlock,WORD_SIZE);
 
@@ -553,7 +550,7 @@ void mm_free (void *ptr) {
   insertFreeBlock(blockInfo);
 
   // Either Coalesce Here or when there are no more free spaces
-  //coalesceFreeBlock(blockInfo);
+  coalesceFreeBlock(blockInfo);
 }
 
 

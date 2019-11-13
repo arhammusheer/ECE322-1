@@ -664,6 +664,7 @@ The realloc() function changes the size of the memory block pointed to by
     mm_free(ptr);
     return NULL;
   }
+  size_t reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT) + WORD_SIZE;
   BlockInfo* blockInfo = (BlockInfo*)UNSCALED_POINTER_SUB(ptr, WORD_SIZE);
   size_t currentSize = SIZE(blockInfo->sizeAndTags);
   if(size == currentSize)
@@ -692,14 +693,13 @@ The realloc() function changes the size of the memory block pointed to by
     insertFreeBlock(newBlock);
     
     // set the new Tag info
-    blockInfo->sizeAndTags = size | previousTagInfo;
+    blockInfo->sizeAndTags = reqSize | previousTagInfo;
     blockInfo->sizeAndTags |= TAG_USED;
     
 
   }
   // Now handle heap expansion case
   else{
-    size_t reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT) + WORD_SIZE;
     // Case where the size isnt large enough for both, subtract wordsize to account for header in first block
     if(size > (currentSize+nextSize-WORD_SIZE)){
       // Malloc a new block and then copy over the old data to the new block
@@ -712,6 +712,7 @@ The realloc() function changes the size of the memory block pointed to by
         oldData++;
         loopData++;
       }
+      mm_free(UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE));
       return newData;
 
 

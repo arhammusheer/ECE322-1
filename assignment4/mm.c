@@ -647,6 +647,97 @@ int mm_check() {
 
 // Extra credit.
 void* mm_realloc(void* ptr, size_t size) {
-  // ... implementation here ...
+  /*
+The realloc() function changes the size of the memory block pointed to by
+	   ptr to size bytes.  The contents will be unchanged in the range from the
+	   start of the region up to the minimum of the old and new sizes.  If the
+	   new size is larger than the old size, the added memory will not be
+	   initialized.  If ptr is NULL, then the call is equivalent to
+	   malloc(size), for all values of size; if size is equal to zero, and ptr
+	   is not NULL, then the call is equivalent to free(ptr).  Unless ptr is
+	   NULL, it must have been returned by an earlier call to malloc(), calloc()
+	   or realloc().  If the area pointed to was moved, a free(ptr) is done.
+  */
+  if(ptr==NULL)
+    return mm_malloc(size);
+  if(size==0){
+    mm_free(ptr);
+    return NULL;
+  }
+  BlockInfo* blockInfo = (BlockInfo*)UNSCALED_POINTER_SUB(ptr, WORD_SIZE);
+  size_t currentSize = SIZE(blockInfo->sizeAndTags);
+  if(size == currentSize)
+    return ptr;
+  BlockInfo* nextBlock = (BlockInfo*)UNSCALED_POINTER_ADD(blockInfo, currentSize);
+  size_t nextSize = SIZE(nextBlock->sizeAndTags);
+
+  // If next tag is used, dont do anything
+  if(nextBlock->sizeAndTags & TAG_USED)
+    nextSize = 0;
+
+  // store preceding tag incase we need to change block size
+  size_t previousTagInfo = blockInfo->sizeAndTags & TAG_PRECEDING_USED;
+  // If we are reducing the block size
+  if(size < currentSize){
+    // If the proposed size is less than the minimum block size, do nothing
+    if((currentSize - size) < MIN_BLOCK_SIZE)
+      return ptr;
+
+    // Go to next block that will be freed
+    BlockInfo* newBlock = (BlockInfo*)UNSCALED_POINTER_ADD(blockInfo, size + WORD_SIZE);
+    
+    // Set the new block's header and footer info and insert into free block list
+    newBlock->sizeAndTags = (currentSize - size) | TAG_PRECEDING_USED;
+    *(size_t*)UNSCALED_POINTER_ADD(newBlock,(currentSize-size-WORD_SIZE)) = newBlock->sizeAndTags;
+    insertFreeBlock(newBlock);
+    
+    // set the new Tag info
+    blockInfo->sizeAndTags = size | previousTagInfo;
+    blockInfo->sizeAndTags |= TAG_USED;
+    
+
+  }
+  // Now handle heap expansion case
+  else{
+    size_t reqSize = ALIGNMENT * ((size + ALIGNMENT - 1) / ALIGNMENT) + WORD_SIZE;
+    // Case where the size isnt large enough for both, subtract wordsize to account for header in first block
+    if(size > (currentSize+nextSize-WORD_SIZE)){
+      // Malloc a new block and then copy over the old data to the new block
+      void* newData = mm_malloc(size);
+      size_t* loopData = (size_t*)newData;
+      size_t* finalData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, currentSize-WORD_SIZE);
+      size_t* oldData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
+      while(oldData != finalData){
+        *loopData = *oldData;
+        oldData++;
+        loopData++;
+      }
+      return newData;
+
+
+      }
+     // Case where there is enough space in the next block
+    else{
+      // Case where size cuts into the next block such that there isnt space for a new block
+      if(nextSize - (size - currentSize) <  MIN_BLOCK_SIZE){
+        removeFreeBlock(nextBlock);
+        blockInfo->sizeAndTags = reqSize | TAG_USED | previousTagInfo;
+        return UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
+      }
+      // Case where next block is big enough and can split into new block
+      else{
+        removeFreeBlock(nextBlock);
+        blockInfo->sizeAndTags = reqSize | TAG_USED | previousTagInfo;
+        BlockInfo* newBlock = (BlockInfo*)UNSCALED_POINTER_ADD(blockInfo, reqSize);
+        newBlock->sizeAndTags = (nextSize + currentSize - size) | TAG_PRECEDING_USED;
+        *(size_t*)UNSCALED_POINTER_ADD(newBlock, SIZE(newBlock->sizeAndTags)) = newBlock->sizeAndTags;
+        insertFreeBlock(newBlock);
+        return UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
+     }
+    }
+
+  }
+ 
+  
   return NULL;
 }

@@ -11,6 +11,13 @@
  *   in memory.
  *-------------------------------------------------------------------- */
 
+
+/*
+   Group Members
+   Bradley Zylstra
+   Ben Short
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -75,7 +82,10 @@ struct BlockInfo {
 };
 typedef struct BlockInfo BlockInfo;
 
+
+// Global Variable to keep track of when coalescing has occured for deferred scheme
 int coal = 0;
+
 /* Pointer to the first BlockInfo in the free list, the list's head. 
    
    A pointer to the head of the free list in this implementation is
@@ -85,6 +95,9 @@ int coal = 0;
    BlockInfo) and dereference this to get a pointer to the first
    BlockInfo in the free list. */
 #define FREE_LIST_HEAD *((BlockInfo **)mem_heap_lo())
+
+// Unused pointer for nextFit approach. Was going to convert to void* but set to BlockInfo* for debug
+BlockInfo* nextSearch;
 
 /* Size of a word on this architecture. */
 #define WORD_SIZE sizeof(void*)
@@ -103,7 +116,7 @@ int coal = 0;
    
       sizeAndTags:
       +-------------------------------------------+
-      | 63 | 62 | 61 | 60 |  . . . .  | 2 | 1 | 0 |
+      | 31 | 30 | 29 | 28 |  . . . .  | 2 | 1 | 0 |
       +-------------------------------------------+
         ^                                       ^
       high bit                               low bit
@@ -142,7 +155,47 @@ static void * searchFreeList(size_t reqSize) {
   return NULL;
 }
 
+static void * searchFreeListContinue(size_t reqSize) {
+
+  /*
+  This implements a next fit algorithm. It continues the search where the old search left off.
+  The next search approach has many problems with it because if the left off block is coalesced 
+  the algorithm will break. This could be fixed by adding code into coalesce block, but first fit
+  is already max efficient for our test cases so this approach will not offer any benefit
+  */
+  BlockInfo* freeBlock;
+  BlockInfo* startBlock;
+  if(nextSearch==NULL){
+    freeBlock = FREE_LIST_HEAD;
+    startBlock = NULL;
+  }
+  else
+    freeBlock = nextSearch;
+    startBlock = nextSearch->prev;
+  while (freeBlock != startBlock){
+    if(freeBlock==NULL)
+      if(startBlock==FREE_LIST_HEAD)
+         return NULL;
+      freeBlock = FREE_LIST_HEAD;
+    nextSearch = freeBlock;
+    if (SIZE(freeBlock->sizeAndTags) >= reqSize) {
+      return freeBlock;
+    } else {
+      freeBlock = freeBlock->next;
+    }
+  }
+  nextSearch = FREE_LIST_HEAD;
+  return NULL;
+}
+
+
 static void* searchFreeListBestFit(size_t reqSize) {
+	/*
+	Searches the free list for best fit block. Simply keeps track of the best size value and returns
+	the block of the best size found, and if a block of exact size is found then return immediately
+	Some work was done with expanding the leeway for what constitutes an exact match for performance
+	concerns, but this had marginal improvements while causing increased fragmentation
+	*/
 	BlockInfo* freeBlock;
 	BlockInfo* bestBlock = NULL;
 	size_t best_size = SIZE_MAX;
@@ -153,7 +206,7 @@ static void* searchFreeListBestFit(size_t reqSize) {
 		if (current_size >= reqSize && current_size<best_size) {
 			bestBlock = freeBlock;
 			best_size = current_size;
-			if (current_size == reqSize)
+			if (current_size <= reqSize)
 				return bestBlock;
 
 		}
@@ -163,7 +216,7 @@ static void* searchFreeListBestFit(size_t reqSize) {
 }
 /* Insert freeBlock at the head of the list.  (LIFO) */
 static void insertFreeBlock(BlockInfo* freeBlock) {
-
+  
   BlockInfo* oldHead = FREE_LIST_HEAD;
   freeBlock->next = oldHead;
   if (oldHead != NULL) {
@@ -172,6 +225,12 @@ static void insertFreeBlock(BlockInfo* freeBlock) {
   //  freeBlock->prev = NULL;
   FREE_LIST_HEAD = freeBlock;
   
+    /*
+    This code inserts into the free list based on memory size
+    The end result is similar to the best fit block selector
+    but with worse performance because insertFreeBlock is called
+    more often than searchFreeBlock.
+    */
     // Code for inserting based on memory size
 	/*
 	freeBlock->next = NULL;
@@ -234,7 +293,8 @@ static void removeFreeBlock(BlockInfo* freeBlock) {
   } else {
     prevFree->next = nextFree;
   }
-
+  if(freeBlock == nextSearch)
+    nextSearch = freeBlock->next;
 }
 
 /* Coalesce 'oldBlock' with any preceeding or following free blocks. */
@@ -285,7 +345,10 @@ static void coalesceFreeBlock(BlockInfo* oldBlock) {
   if (newSize != oldSize) {
     // Remove the original block from the free list
     removeFreeBlock(oldBlock);
-	coal = 1;
+
+    // Set coal = 1 for deferred coalescing scheme
+    coal = 1;
+
     // Save the new size in the block info and in the boundary tag
     // and tag it to show the preceding block is used (otherwise, it
     // would have become part of this one!).
@@ -413,12 +476,13 @@ int mm_init () {
   return 0;
 }
 
-
-// TOP-LEVEL ALLOCATOR INTERFACE ------------------------------------
-
-/* This implements a deferrred scheme */
 void* coalesce_all() {
-
+	/*
+	This implements a deferred coalesing scheme. Works by iterating through every 
+	block and coalesing. If coalescing did occur, since there is no way to determine the
+	next block, start from the beginning of the free list. Performance could be improved by
+	having coalesceFreeBlock return a pointer to the new block after coalescing.
+	*/
 	BlockInfo* oldHead = FREE_LIST_HEAD;
 	if (!oldHead) {
 		return;
@@ -438,8 +502,16 @@ void* coalesce_all() {
 
 }
 
-/* Allocate a block of size size and return a pointer to it. */
+
+// TOP-LEVEL ALLOCATOR INTERFACE ------------------------------------
 void* mm_malloc (size_t size) {
+  /*
+  Create a free block of given size and return a pointer to it. 
+  After much testing, we decided to use the default allocation scheme which is:
+  LIFO free list insertion, Immediate Coalescing, and first fit block selection
+  The next best case was best fit block selection, but it only marginally improved utilization
+  while suffering massively in performance
+  */
   size_t reqSize;
   BlockInfo * ptrFreeBlock = NULL;
   size_t blockSize;
@@ -464,22 +536,22 @@ void* mm_malloc (size_t size) {
   }
   
   //search the list for a free block
-  //void* freeBlock = searchFreeListBestFit(reqSize);
   void* freeBlock = searchFreeList(reqSize);
-  //free block can be larger than the requested size
+
+  // Search the list for a free block using best fit scheme
+  //void* freeBlock = searchFreeListBestFit(reqSize);
   
   if(freeBlock == NULL){
-	  //no block large enough, request more heap memory and search again
-	  // deferrred scheme
-	  requestMoreSpace(reqSize);
+	  // if using deferrred scheme, coalesce all blocks if none are found 
 	  //coalesce_all();
-
-	  // Best Fit
-	  //freeBlock = searchFreeListBestFit(reqSize);
+	  
+	  // If no free block is found, increase the heap size by the required size and then get that new block
+	  requestMoreSpace(reqSize);
 	  freeBlock = searchFreeList(reqSize);
+
+	  // This code will only run during deferred coalescing scheme if not enough space was freed up during coalescing
 	  if (freeBlock == NULL) {
 		  requestMoreSpace(reqSize);
-		  //freeBlock = searchFreeListBestFit(reqSize);
 		  freeBlock = searchFreeList(reqSize);
 	  }
 	  
@@ -507,12 +579,16 @@ void* mm_malloc (size_t size) {
 	  size_t newBlockSize = SIZE(ptrFreeBlock->sizeAndTags) - reqSize;
 	  newFreeBlock->sizeAndTags = newBlockSize | TAG_PRECEDING_USED;
 	  *((size_t*) (UNSCALED_POINTER_ADD(newFreeBlock, SIZE(newFreeBlock->sizeAndTags)-WORD_SIZE))) = newBlockSize | TAG_PRECEDING_USED;
+	  
 	  //add the new, smaller free block back to the list
 	  insertFreeBlock(newFreeBlock);
-
+	  
+	  // Set the preceding tag that was previously saved and the new reqSize for the block
 	  ptrFreeBlock->sizeAndTags = reqSize | precedingBlockUseTag;
   }
   else {
+	  // If the reqSize fits without need for splitting, then just set the preceding tag info for the next block to filled
+	  // We dont need to set any header information because the found block is the perfect size
 	  BlockInfo* nextBlock = (BlockInfo*)UNSCALED_POINTER_ADD(ptrFreeBlock, SIZE(ptrFreeBlock->sizeAndTags));
 	  nextBlock->sizeAndTags = nextBlock->sizeAndTags | TAG_PRECEDING_USED;
 
@@ -523,34 +599,44 @@ void* mm_malloc (size_t size) {
     
   //return a pointer to the part of the allocated block after the size and tags
   return UNSCALED_POINTER_ADD(ptrFreeBlock,WORD_SIZE);
-
-  // Implement mm_malloc.  You can change or remove any of the above
-  // code.  It is included as a suggestion of where to start.
-  // You will want to replace this return statement...
 }
 
 /* Free the block referenced by ptr. */
 void mm_free (void *ptr) {
+	/*
+	Implements mm_free. Finds the block referred to by PTR(ptr-word_size), sets its header and boundary tags properly and
+	the following blocks tag correctly and then adds the block back to the free list.
+	
+	We ran several algorithms to check if deferred coalescing would increase speeds, but in the test cases provided it is faster
+	to coalesce right when a block is freed, so after the block is added to the list coalescing is performed.
+
+	*/
 
 	if (!ptr) {
 		return NULL;
 	}
-  size_t payloadSize;
-  BlockInfo * blockInfo = (BlockInfo*) UNSCALED_POINTER_SUB(ptr, WORD_SIZE);
-  BlockInfo * followingBlock = (BlockInfo*) UNSCALED_POINTER_ADD(blockInfo, SIZE(blockInfo->sizeAndTags));
+  	size_t payloadSize;
+  	// Get the BlockInfo pointers to this block and the next block
+	BlockInfo * blockInfo = (BlockInfo*) UNSCALED_POINTER_SUB(ptr, WORD_SIZE);
+  	BlockInfo * followingBlock = (BlockInfo*) UNSCALED_POINTER_ADD(blockInfo, SIZE(blockInfo->sizeAndTags));
 
-  // Set following block and current block tags
-  blockInfo->sizeAndTags = blockInfo->sizeAndTags & (~TAG_USED);
-  followingBlock->sizeAndTags = followingBlock->sizeAndTags & (~TAG_PRECEDING_USED);
-
-  *((size_t*)UNSCALED_POINTER_ADD(blockInfo, SIZE(blockInfo->sizeAndTags) - WORD_SIZE)) = blockInfo->sizeAndTags;
-
-
-
-  insertFreeBlock(blockInfo);
-
-  // Either Coalesce Here or when there are no more free spaces
-  coalesceFreeBlock(blockInfo);
+  	// Set following block and current block tags to show a free block without changing the other tags
+  	blockInfo->sizeAndTags = blockInfo->sizeAndTags & (~TAG_USED);
+  	followingBlock->sizeAndTags = followingBlock->sizeAndTags & (~TAG_PRECEDING_USED);
+	
+	// If following block is free, also update its boundary tag
+	// This is only useful for deferred coalescing. If instant, this block will be coalesced later in the function
+	if(!(followingBlock->sizeAndTags && TAG_USED)){
+		*((size_t*)UNSCALED_POINTER_ADD(followingBlock, SIZE(followingBlock->sizeAndTags) - WORD_SIZE)) = followingBlock->sizeAndTags;
+	}
+	
+	// Set the boundary tag for this block equal to the header
+  	*((size_t*)UNSCALED_POINTER_ADD(blockInfo, SIZE(blockInfo->sizeAndTags) - WORD_SIZE)) = blockInfo->sizeAndTags;
+	
+	// Insert block back into the free list
+  	insertFreeBlock(blockInfo);
+  	// Either Coalesce Here or when there are no more free spaces
+  	coalesceFreeBlock(blockInfo);
 }
 
 

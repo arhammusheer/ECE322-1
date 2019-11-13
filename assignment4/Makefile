@@ -5,7 +5,7 @@ SUBMITDIR = /projects/instr/10sp/cse351/$(USER)/lab7
 FILES = mm.c
 
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -m32
 
 OBJS = mm.o memlib.o fsecs.o fcyc.o clock.o ftimer.o
 

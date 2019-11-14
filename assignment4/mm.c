@@ -85,7 +85,7 @@ typedef struct BlockInfo BlockInfo;
 
 // Global Variable to keep track of when coalescing has occured for deferred scheme
 int coal = 0;
-
+int mall = 0;
 /* Pointer to the first BlockInfo in the free list, the list's head. 
    
    A pointer to the head of the free list in this implementation is
@@ -206,7 +206,7 @@ static void* searchFreeListBestFit(size_t reqSize) {
 		if (current_size >= reqSize && current_size<best_size) {
 			bestBlock = freeBlock;
 			best_size = current_size;
-			if (current_size <= reqSize)
+			if (current_size == reqSize)
 				return bestBlock;
 
 		}
@@ -222,7 +222,7 @@ static void insertFreeBlock(BlockInfo* freeBlock) {
   if (oldHead != NULL) {
     oldHead->prev = freeBlock;
   }
-  freeBlock->prev = NULL;
+  //freeBlock->prev = NULL;
   FREE_LIST_HEAD = freeBlock;
   
     /*
@@ -536,10 +536,18 @@ void* mm_malloc (size_t size) {
   }
   
   //search the list for a free block
-  void* freeBlock = searchFreeList(reqSize);
+  //
 
   // Search the list for a free block using best fit scheme
-  //void* freeBlock = searchFreeListBestFit(reqSize);
+  void* freeBlock;
+  if (mall) {
+	  freeBlock = searchFreeListBestFit(reqSize);
+  }
+  else {
+	  
+	  freeBlock = searchFreeList(reqSize);
+
+  }
   
   if(freeBlock == NULL){
 	  // if using deferrred scheme, coalesce all blocks if none are found 
@@ -582,7 +590,7 @@ void* mm_malloc (size_t size) {
 	  
 	  //add the new, smaller free block back to the list
 	  insertFreeBlock(newFreeBlock);
-	  
+	  coalesceFreeBlock(newFreeBlock);
 	  // Set the preceding tag that was previously saved and the new reqSize for the block
 	  ptrFreeBlock->sizeAndTags = reqSize | precedingBlockUseTag;
   }
@@ -656,6 +664,8 @@ The realloc() function changes the size of the memory block pointed to by
 	   NULL, it must have been returned by an earlier call to malloc(), calloc()
 	   or realloc().  If the area pointed to was moved, a free(ptr) is done.
   */
+	if (ptr == NULL && size == 0)
+		return NULL;
   if(ptr==NULL)
     return mm_malloc(size);
   if(size==0){
@@ -700,6 +710,7 @@ The realloc() function changes the size of the memory block pointed to by
 	newBlock->prev = NULL;
     *(size_t*)UNSCALED_POINTER_ADD(newBlock,(currentSize-reqSize)-WORD_SIZE) = newBlock->sizeAndTags;
     insertFreeBlock(newBlock);
+	coalesceFreeBlock(newBlock);
     
     // set the new Tag info
     blockInfo->sizeAndTags = reqSize | previousTagInfo;
@@ -714,15 +725,19 @@ The realloc() function changes the size of the memory block pointed to by
     // Case where the size isnt large enough for both, subtract wordsize to account for header in first block
     if(reqSize > (currentSize+nextSize)){
       // Malloc a new block and then copy over the old data to the new block
-      void* newData = mm_malloc(reqSize-WORD_SIZE);
+		mall = 1;
+      void* newData = mm_malloc(size);
+	  mall = 0;
       size_t* loopData = (size_t*)newData;
       size_t* finalData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, currentSize);
       size_t* oldData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
+	  
       while(oldData != finalData){
         *loopData = *oldData;
         oldData++;
         loopData++;
       }
+	  
       mm_free(UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE));
       return newData;
 
@@ -731,9 +746,10 @@ The realloc() function changes the size of the memory block pointed to by
      // Case where there is enough space in the next block
     else{
       // Case where size cuts into the next block such that there isnt space for a new block
-      if(nextSize - (reqSize - currentSize) <  MIN_BLOCK_SIZE){
+      if((nextSize - reqSize + currentSize) <  MIN_BLOCK_SIZE){
         removeFreeBlock(nextBlock);
-        blockInfo->sizeAndTags = reqSize | TAG_USED | previousTagInfo;
+		blockInfo->sizeAndTags = reqSize | TAG_USED;
+		blockInfo->sizeAndTags|= previousTagInfo;
         return UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
       }
       // Case where next block is big enough and can split into new block
@@ -747,6 +763,7 @@ The realloc() function changes the size of the memory block pointed to by
 		newBlock->prev = NULL;
         *(size_t*)UNSCALED_POINTER_ADD(newBlock, SIZE(newBlock->sizeAndTags) - WORD_SIZE) = newBlock->sizeAndTags;
         insertFreeBlock(newBlock);
+		coalesceFreeBlock(newBlock);
         return UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);
      }
     }

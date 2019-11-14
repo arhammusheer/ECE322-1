@@ -702,10 +702,7 @@ void* mm_realloc(void* ptr, size_t size) {
 	
   // Set the correct size to expand the block by. Must be 8byte aligned!
   size_t reqSize;
-  if(size < MIN_BLOCK_SIZE)
-    reqSize = MIN_BLOCK_SIZE;
-  else
-    reqSize = ALIGNMENT * ((size + WORD_SIZE + ALIGNMENT - 1) / ALIGNMENT);
+  reqSize = ALIGNMENT * ((size + WORD_SIZE + ALIGNMENT - 1) / ALIGNMENT);
 
   // Get the block ptr points to and its size
   BlockInfo* blockInfo = (BlockInfo*)UNSCALED_POINTER_SUB(ptr, WORD_SIZE);

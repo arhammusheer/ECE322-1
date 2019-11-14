@@ -664,6 +664,7 @@ The realloc() function changes the size of the memory block pointed to by
 	   NULL, it must have been returned by an earlier call to malloc(), calloc()
 	   or realloc().  If the area pointed to was moved, a free(ptr) is done.
   */
+	mall = 1;
 	if (ptr == NULL && size == 0)
 		return NULL;
   if(ptr==NULL)
@@ -725,9 +726,8 @@ The realloc() function changes the size of the memory block pointed to by
     // Case where the size isnt large enough for both, subtract wordsize to account for header in first block
     if(reqSize > (currentSize+nextSize)){
       // Malloc a new block and then copy over the old data to the new block
-		mall = 1;
+		
       void* newData = mm_malloc(size);
-	  mall = 0;
       size_t* loopData = (size_t*)newData;
       size_t* finalData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, currentSize);
       size_t* oldData = (size_t*)UNSCALED_POINTER_ADD(blockInfo, WORD_SIZE);

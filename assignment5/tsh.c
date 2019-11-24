@@ -309,6 +309,7 @@ void eval(char* cmdline) //Ben
 	int list_index = 0;
 	int first_arg_idx = 0;
 	int last_arg_idx;
+	int found_last_arg = 0;
 	
 	int i;
 	for(i = 0; i < MAXARGS; i++){
@@ -333,7 +334,7 @@ void eval(char* cmdline) //Ben
 				}
 			}
 		}else if (strcmp(args[i], ">")){
-			last_arg_idx = i - 1; //find index of the last argument?
+			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
 			
 			
 			if(i == 0){
@@ -355,9 +356,10 @@ void eval(char* cmdline) //Ben
 				}
 			}
 		}else if (strcmp(args[i], "|")){
-			last_arg_idx = i - 1; //find index of the last argument?
+			last_arg_idx = i - 1; //find index of the last argument
 			//copy arguments into array
 			
+			first_arg_idx = i+1; //index of first argument for next command? what if stderr also redirected
 			
 			if(i == 0){
 				//error
@@ -392,7 +394,7 @@ void eval(char* cmdline) //Ben
 				
 			}
 		}else if (strcmp(args[i], ">>")){
-			last_arg_idx = i - 1; //find index of the last argument?
+			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
 			
 			
 			if(i == 0){
@@ -414,7 +416,7 @@ void eval(char* cmdline) //Ben
 				}
 			}
 		}else if (strcmp(args[i], "2>")){
-			last_arg_idx = i - 1; //find index of the last argument?
+			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
 			
 			
 			if(i == 0){

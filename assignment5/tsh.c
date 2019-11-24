@@ -51,7 +51,22 @@ struct job_t {              /* The job struct */
 	int state;              /* UNDEF, BG, FG, or ST */
 	char cmdline[MAXLINE];  /* command line */
 };
+
+struct job_file_table{
+	int in;
+	int out;
+	int err;
+	struct job_file_table* next;
+};
+
+struct table_list{
+	struct job_file_table* head;
+	struct job_file_table* tail;
+	int size;
+};
+
 struct job_t jobs[MAXJOBS]; /* The job list */
+struct job_file_table* table;
 /* End global variables */
 
 
@@ -59,6 +74,10 @@ struct job_t jobs[MAXJOBS]; /* The job list */
 
 int contains(char* s, char c);
 int get_num_jobs(struct job_t* jobs);
+int add_new_file_table(struct table_list* table, int sin, int sout, int serr);
+void init_table_list(struct table_list* table);
+struct job_file_table* table_list_get(struct table_list* table, int index);
+
 
 /* Here are the functions that you will implement */
 void eval(char* cmdline);
@@ -202,6 +221,63 @@ int get_num_jobs(struct job_t* jobs) {
 	return count;
 }
 
+/*
+ * add_new_file_table - adds a new file table to the list. Contains how a command's file table should be redirected
+ *
+ * Parameters:
+ * table - pointer to struct table_list that stores the list
+ * sin - file descriptor to replace stdin with. -1 to not replace
+ * sout - file descriptor to replace stdout with. -1 to not replace
+ * serr - file descriptor to replace stderr with. -1 to not replace
+ *
+ * Returns:
+ * 1 if successfully added to the able. 0 if unsuccessful
+*/
+
+int add_new_file_table(struct table_list* table, int sin, int sout, int serr){
+	struct job_file_table* ft;
+	ft->in = sin;
+	ft->out = sout;
+	ft->err = serr;
+	ft->next = NULL;
+	if(table->size == 0){
+		table->head = ft;
+		table->tail = ft;
+		table->size += 1;
+	}else{
+		table->tail->next = ft;
+		table->tail = ft;
+		table->size += 1;
+	}
+	return 0;
+}
+
+/*
+ * init_table_list - initializes a struct table_list
+ *
+ * Parameters:
+ * table - pointer to struct table_list
+ *
+*/
+
+void init_table_list(struct table_list* table){
+	table->head = NULL;
+	table->tail = NULL;
+	table->size = 0;
+}
+
+struct job_file_table* table_list_get(struct table_list* table, int index){
+	if(index > table->size){
+		return NULL;
+	}
+	struct job_file_table* t;
+	t = table->head;
+	for(int i = 0; i < index; i++){
+		t = t->next;
+	}
+	return t;
+}
+
 
 /*
  * eval - Evaluate the command line that the user has just typed in
@@ -216,17 +292,159 @@ int get_num_jobs(struct job_t* jobs) {
 */
 void eval(char* cmdline) //Ben
 {
-	char* args[MAXARGS]; //hopefully not more than 50 arguments on the command line
-
-
+	char* args[MAXARGS];
+	char** commands[MAXARGS][MAXARGS];
+	int numCommands = 1;
 
 	//parse line
 	int run_bg = parseline(cmdline, args);
+	
+	//how to do redirection:
+	//parse commandline
+	//iterate through the array to find redirection operators
+	
+	init_table_list(table);
+	//increment list index when we find a pipe, because if there is no pipe then there are no more commands we need to worry about,
+	//and if there is a pipe then there are more commands to worry about
+	int list_index = 0;
+	int first_arg_idx = 0;
+	int last_arg_idx;
+	
+	int i;
+	for(i = 0; i < MAXARGS; i++){
+		if(strcmp(args[i], "<")){
+			first_arg_idx = i + 1; //find index for the command name
+			if(i == 0){
+				//error
+			}else{
+				//get previous argument
+				char* path = args[i-1];
+				
+				//obtain file descriptor for the file
+				int fd = open(path, O_CREAT);
+				
+				struct job_file_table* t= table_list_get(table, list_index);
+				if(t == NULL){//our job does not exist yet
+					//add our job to the list and set its stdin to be from the file
+					add_new_file_table(table, fd, STDOUT_FILENO, STDERR_FILENO);
+				}else{//our job does exist in the list
+					//set job's stdin to be from the file
+					t->in = fd;
+				}
+			}
+		}else if (strcmp(args[i], ">")){
+			last_arg_idx = i - 1; //find index of the last argument?
+			
+			
+			if(i == 0){
+				//error
+			}else{
+				//get next argument
+				char* out = args[i+1];
+				
+				//obtain file descriptor for the file
+				int fd = open(path, O_CREAT);
+				
+				struct job_file_table* t= table_list_get(table, list_index);
+				if(t == NULL){//our job does not exist in the list
+					//add our job to the list and set its stdout to go to the file
+					add_new_file_table(table, STDIN_FILENO, fd, STDERR_FILENO);
+				}else{//our job does exist in the list
+					//set job's stdout to be to the file
+					t->out = fd;
+				}
+			}
+		}else if (strcmp(args[i], "|")){
+			last_arg_idx = i - 1; //find index of the last argument?
+			//copy arguments into array
+			
+			
+			if(i == 0){
+				//error
+			}else{
+				//create pipe
+				int fds[2];
+				if(!pipe(fds)){
+					struct job_file_table* t = table_list_get(table, list_index);
+					if(t == NULL){//job does not exist in our list yet
+						//add both current and next job to the list
+						
+						//set out of current job to redirect to the pipe
+						add_new_file_table(table, STDIN_FILENO, fds[0], STDERR_FILENO);
+						//set in of next job to come from the pipe
+						add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+					}else{//job exists in our list
+						//set stdout of the job to redirect to the pipe
+						t->out = fd;
+						if(t->next == NULL){//next job does not exist in our list
+							//add new job to the list and set its input to come from the pipe
+							add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+						}else{//next job DOES exist in our list
+							//set input of next job to come from the pipe
+							t->next->in = fds[1];
+						}
+					}
+					list_index++;
+					numCommands++;
+				}else{
+					//error has occurred
+				}
+				
+			}
+		}else if (strcmp(args[i], ">>")){
+			last_arg_idx = i - 1; //find index of the last argument?
+			
+			
+			if(i == 0){
+				//error
+			}else{
+				//get next argument
+				char* out = args[i+1];
+				
+				//obtain file descriptor for the file
+				int fd = open(path, O_CREAT | O_APPEND);
+				
+				struct job_file_table* t= table_list_get(table, list_index);
+				if(t == NULL){//our job does not exist in the list
+					//add our job to the list and set its stdout to go to the file
+					add_new_file_table(table, STDIN_FILENO, fd, STDERR_FILENO);
+				}else{//our job does exist in the list
+					//set job's stdout to be to the file
+					t->out = fd;
+				}
+			}
+		}else if (strcmp(args[i], "2>")){
+			last_arg_idx = i - 1; //find index of the last argument?
+			
+			
+			if(i == 0){
+				//error
+			}else{
+				//get next argument
+				char* out = args[i+1];
+				
+				//obtain file descriptor for the file
+				int fd = open(path, O_CREAT);
+				
+				struct job_file_table* t= table_list_get(table, list_index);
+				if(t == NULL){//our job does not exist in the list
+					//add our job to the list and set its stdout to go to the file
+					add_new_file_table(table, STDIN_FILENO, STDOUT_FILENO, fd);
+				}else{//our job does exist in the list
+					//set job's stdout to be to the file
+					t->err = fd;
+				}
+			}
+		}
+	}
+	
+	//separate commands and arguments and exec each one after setting the file descriptors
 
 	//check if built_in command
 	if (builtin_cmd(args)) {
 		return; //command was built in, we're done here
 	}
+
 
 	pid_t id;
 	int job_state = (run_bg) ? BG : FG;

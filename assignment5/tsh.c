@@ -10,6 +10,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <errno.h>
@@ -66,7 +68,8 @@ struct table_list{
 };
 
 struct job_t jobs[MAXJOBS]; /* The job list */
-struct job_file_table* table;
+struct table_list t;
+struct table_list* table = &t;
 /* End global variables */
 
 
@@ -235,7 +238,8 @@ int get_num_jobs(struct job_t* jobs) {
 */
 
 int add_new_file_table(struct table_list* table, int sin, int sout, int serr){
-	struct job_file_table* ft;
+	struct job_file_table t;
+	struct job_file_table* ft = &t;
 	ft->in = sin;
 	ft->out = sout;
 	ft->err = serr;
@@ -293,7 +297,7 @@ struct job_file_table* table_list_get(struct table_list* table, int index){
 void eval(char* cmdline) //Ben
 {
 	char* args[MAXARGS];
-	char** commands[MAXARGS][MAXARGS];
+	char* commands[10][MAXARGS]; //input handles up to 10 commands
 	int numCommands = 1;
 
 	//parse line
@@ -309,11 +313,11 @@ void eval(char* cmdline) //Ben
 	int list_index = 0;
 	int first_arg_idx = 0;
 	int last_arg_idx;
-	int found_last_arg = 0;
+	int found_last_arg = 0; //flags if we have already found the last argument for a command in case of multiple redirectors on the right side
 	
 	int i;
 	for(i = 0; i < MAXARGS; i++){
-		if(strcmp(args[i], "<")){
+		if(!strncmp(args[i], "<", 1)){
 			first_arg_idx = i + 1; //find index for the command name
 			if(i == 0){
 				//error
@@ -322,7 +326,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i-1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_CREAT);
+				int fd = open(path, O_RDONLY);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist yet
@@ -333,18 +337,25 @@ void eval(char* cmdline) //Ben
 					t->in = fd;
 				}
 			}
-		}else if (strcmp(args[i], ">")){
-			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
-			
+		}else if (!strncmp(args[i], ">", 1)){
+			if(!found_last_arg){
+				last_arg_idx = i - 1; //found index of the last argument
+				found_last_arg = 1;
+				
+				//copy over the arguments
+				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+			}
 			
 			if(i == 0){
 				//error
 			}else{
 				//get next argument
-				char* out = args[i+1];
+				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_CREAT);
+				int fd = open(path, O_WRONLY);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -355,11 +366,19 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (strcmp(args[i], "|")){
-			last_arg_idx = i - 1; //find index of the last argument
-			//copy arguments into array
+		}else if (!strncmp(args[i], "|", 1)){
+			if(!found_last_arg){
+				last_arg_idx = i - 1; //found index of the last argument
+				found_last_arg = 1;
+				
+				//copy over the arguments
+				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+			}
 			
-			first_arg_idx = i+1; //index of first argument for next command? what if stderr also redirected
+			first_arg_idx = i+1; //index of first argument for next command after the pipe
+			found_last_arg = 0; //reset found_last_arg for next command
 			
 			if(i == 0){
 				//error
@@ -377,7 +396,7 @@ void eval(char* cmdline) //Ben
 						add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
 					}else{//job exists in our list
 						//set stdout of the job to redirect to the pipe
-						t->out = fd;
+						t->out = fds[0];
 						if(t->next == NULL){//next job does not exist in our list
 							//add new job to the list and set its input to come from the pipe
 							add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
@@ -393,18 +412,26 @@ void eval(char* cmdline) //Ben
 				}
 				
 			}
-		}else if (strcmp(args[i], ">>")){
-			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
+		}else if (!strncmp(args[i], ">>", 2)){
+			if(!found_last_arg){
+				last_arg_idx = i - 1; //found index of the last argument
+				found_last_arg = 1;
+				
+				//copy over the arguments
+				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+			}
 			
 			
 			if(i == 0){
 				//error
 			}else{
 				//get next argument
-				char* out = args[i+1];
+				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_CREAT | O_APPEND);
+				int fd = open(path, O_WRONLY | O_APPEND);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -415,18 +442,25 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (strcmp(args[i], "2>")){
-			last_arg_idx = i - 1; //find index of the last argument? what if both out and err redirection?
-			
+		}else if (!strncmp(args[i], "2>", 2)){
+			if(!found_last_arg){
+				last_arg_idx = i - 1; //found index of the last argument
+				found_last_arg = 1;
+				
+				//copy over the arguments
+				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+			}
 			
 			if(i == 0){
 				//error
 			}else{
 				//get next argument
-				char* out = args[i+1];
+				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_CREAT);
+				int fd = open(path, O_WRONLY);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -440,7 +474,18 @@ void eval(char* cmdline) //Ben
 		}
 	}
 	
-	//separate commands and arguments and exec each one after setting the file descriptors
+	printf("Results:\n");
+	printf("Number of commands: %d\n", numCommands);
+	printf("Commands: \n");
+	for(int a = 0; a < 10; a++){
+		for(int b = 0; b < 10; b++){
+			printf("%s\n", commands[a][b]);
+		}
+	}
+	
+	//numCommands is how many commands we have to execute
+	//commands array holds the argument array for each command
+	//table is a linked list of structs that contain the file descriptors
 
 	//check if built_in command
 	if (builtin_cmd(args)) {

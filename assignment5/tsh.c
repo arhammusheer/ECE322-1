@@ -237,7 +237,7 @@ int get_num_jobs(struct job_t* jobs) {
  * 1 if successfully added to the able. 0 if unsuccessful
 */
 
-int add_new_file_table(struct table_list* table, int sin, int sout, int serr){
+int add_new_file_table(struct table_list** table, int sin, int sout, int serr){
 	struct job_file_table* ft = (struct job_file_table*) malloc(sizeof(struct job_file_table));
 	ft->in = sin;
 	ft->out = sout;
@@ -359,7 +359,7 @@ void eval(char* cmdline) //Ben
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist yet
 					//add our job to the list with the normal file descriptors
-					add_new_file_table(table, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO);
+					add_new_file_table(&table, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO);
 				}
 			}
 			
@@ -379,7 +379,7 @@ void eval(char* cmdline) //Ben
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist yet
 					//add our job to the list and set its stdin to be from the file
-					add_new_file_table(table, fd, STDOUT_FILENO, STDERR_FILENO);
+					add_new_file_table(&table, fd, STDOUT_FILENO, STDERR_FILENO);
 				}else{//our job does exist in the list
 					//set job's stdin to be from the file
 					t->in = fd;
@@ -408,7 +408,7 @@ void eval(char* cmdline) //Ben
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
 					//add our job to the list and set its stdout to go to the file
-					add_new_file_table(table, STDIN_FILENO, fd, STDERR_FILENO);
+					add_new_file_table(&table, STDIN_FILENO, fd, STDERR_FILENO);
 				}else{//our job does exist in the list
 					//set job's stdout to be to the file
 					t->out = fd;
@@ -439,15 +439,15 @@ void eval(char* cmdline) //Ben
 						//add both current and next job to the list
 						
 						//set out of current job to redirect to the pipe
-						add_new_file_table(table, STDIN_FILENO, fds[0], STDERR_FILENO);
+						add_new_file_table(&table, STDIN_FILENO, fds[0], STDERR_FILENO);
 						//set in of next job to come from the pipe
-						add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+						add_new_file_table(&table, fds[1], STDOUT_FILENO, STDERR_FILENO);
 					}else{//job exists in our list
 						//set stdout of the job to redirect to the pipe
 						t->out = fds[0];
 						if(t->next == NULL){//next job does not exist in our list
 							//add new job to the list and set its input to come from the pipe
-							add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+							add_new_file_table(&table, fds[1], STDOUT_FILENO, STDERR_FILENO);
 						}else{//next job DOES exist in our list
 							//set input of next job to come from the pipe
 							t->next->in = fds[1];
@@ -484,7 +484,7 @@ void eval(char* cmdline) //Ben
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
 					//add our job to the list and set its stdout to go to the file
-					add_new_file_table(table, STDIN_FILENO, fd, STDERR_FILENO);
+					add_new_file_table(&table, STDIN_FILENO, fd, STDERR_FILENO);
 				}else{//our job does exist in the list
 					//set job's stdout to be to the file
 					t->out = fd;
@@ -513,7 +513,7 @@ void eval(char* cmdline) //Ben
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
 					//add our job to the list and set its stdout to go to the file
-					add_new_file_table(table, STDIN_FILENO, STDOUT_FILENO, fd);
+					add_new_file_table(&table, STDIN_FILENO, STDOUT_FILENO, fd);
 				}else{//our job does exist in the list
 					//set job's stdout to be to the file
 					t->err = fd;

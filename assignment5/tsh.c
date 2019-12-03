@@ -68,8 +68,8 @@ struct table_list{
 };
 
 struct job_t jobs[MAXJOBS]; /* The job list */
-struct table_list t;
-struct table_list* table = &t;
+struct table_list* table;
+int table_list_allocated = 0;
 /* End global variables */
 
 
@@ -78,7 +78,7 @@ struct table_list* table = &t;
 int contains(char* s, char c);
 int get_num_jobs(struct job_t* jobs);
 int add_new_file_table(struct table_list* table, int sin, int sout, int serr);
-void init_table_list(struct table_list* table);
+struct table_list* init_table_list();
 struct job_file_table* table_list_get(struct table_list* table, int index);
 
 
@@ -238,8 +238,7 @@ int get_num_jobs(struct job_t* jobs) {
 */
 
 int add_new_file_table(struct table_list* table, int sin, int sout, int serr){
-	struct job_file_table t;
-	struct job_file_table* ft = &t;
+	struct job_file_table* ft = (struct job_file_table*) malloc(sizeof(struct job_file_table));
 	ft->in = sin;
 	ft->out = sout;
 	ft->err = serr;
@@ -264,10 +263,31 @@ int add_new_file_table(struct table_list* table, int sin, int sout, int serr){
  *
 */
 
-void init_table_list(struct table_list* table){
-	table->head = NULL;
-	table->tail = NULL;
-	table->size = 0;
+struct table_list* init_table_list(){
+	struct table_list* t = (struct table_list*) malloc(sizeof(struct table_list));
+	table_list_allocated = 1;
+	t->head = NULL;
+	t->tail = NULL;
+	t->size = 0;
+	return t;
+}
+
+void free_table_list(struct table_list* table){
+	if(table_list_allocated){
+		struct job_file_table* t = table->head;
+		struct job_file_table* t_next;
+		for(int i = 0; i < table->size; i++){
+			if(t != NULL){
+				t_next = t->next;
+				free(t);
+				t = t_next;
+			}else{
+				break;
+			}
+		}
+		free(table);
+		table_list_allocated = 0;
+	}
 }
 
 struct job_file_table* table_list_get(struct table_list* table, int index){
@@ -307,17 +327,45 @@ void eval(char* cmdline) //Ben
 	//parse commandline
 	//iterate through the array to find redirection operators
 	
-	init_table_list(table);
+	table = init_table_list();
 	//increment list index when we find a pipe, because if there is no pipe then there are no more commands we need to worry about,
 	//and if there is a pipe then there are more commands to worry about
 	int list_index = 0;
 	int first_arg_idx = 0;
 	int last_arg_idx;
 	int found_last_arg = 0; //flags if we have already found the last argument for a command in case of multiple redirectors on the right side
+	char in_redir[2] = "<\0";
+	char out_redir[2] = ">\0";
+	char out_append_redir[3] = ">>\0";
+	char pipe_redir[2] = "|\0";
+	char err_redir[3] = "2>\0";
 	
 	int i;
+	
 	for(i = 0; i < MAXARGS; i++){
-		if(!strncmp(args[i], "<", 1)){
+		char* arg = args[i];
+		if(arg == NULL){
+			if(!found_last_arg){
+				//reached the end of the arguments list without hitting a final stderr or stdout redirector
+				//copy over the rest of the arguments
+				last_arg_idx = i - 1; //found index of the last argument
+					
+				//copy over the arguments
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+				
+				//check to see if we have a file table for this job
+				struct job_file_table* t= table_list_get(table, list_index);
+				if(t == NULL){//our job does not exist yet
+					//add our job to the list with the normal file descriptors
+					add_new_file_table(table, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO);
+				}
+			}
+			
+			break;
+		}
+		if(!strncmp(arg, in_redir, 1)){
 			first_arg_idx = i + 1; //find index for the command name
 			if(i == 0){
 				//error
@@ -337,13 +385,13 @@ void eval(char* cmdline) //Ben
 					t->in = fd;
 				}
 			}
-		}else if (!strncmp(args[i], ">", 1)){
+		}else if (!strncmp(arg, out_redir, 1)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
 				
 				//copy over the arguments
-				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
 					commands[list_index][j] = args[first_arg_idx+j];
 				}
 			}
@@ -366,13 +414,13 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (!strncmp(args[i], "|", 1)){
+		}else if (!strncmp(arg, pipe_redir, 1)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
 				
 				//copy over the arguments
-				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
 					commands[list_index][j] = args[first_arg_idx+j];
 				}
 			}
@@ -412,13 +460,13 @@ void eval(char* cmdline) //Ben
 				}
 				
 			}
-		}else if (!strncmp(args[i], ">>", 2)){
+		}else if (!strncmp(arg, out_append_redir, 2)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
 				
 				//copy over the arguments
-				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
 					commands[list_index][j] = args[first_arg_idx+j];
 				}
 			}
@@ -442,13 +490,13 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (!strncmp(args[i], "2>", 2)){
+		}else if (!strncmp(arg, err_redir, 2)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
 				
 				//copy over the arguments
-				for(int j = 0; j < last_arg_idx-first_arg_idx; j++){
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
 					commands[list_index][j] = args[first_arg_idx+j];
 				}
 			}
@@ -474,15 +522,18 @@ void eval(char* cmdline) //Ben
 		}
 	}
 	
+	/*
 	printf("Results:\n");
 	printf("Number of commands: %d\n", numCommands);
 	printf("Commands: \n");
 	for(int a = 0; a < 10; a++){
 		for(int b = 0; b < 10; b++){
-			printf("%s\n", commands[a][b]);
+			if(commands[a][b] == NULL) break;
+			printf("%s ", commands[a][b]);
 		}
+		printf("\n");
 	}
-	
+	*/
 	//numCommands is how many commands we have to execute
 	//commands array holds the argument array for each command
 	//table is a linked list of structs that contain the file descriptors

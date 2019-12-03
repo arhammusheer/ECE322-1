@@ -276,14 +276,10 @@ void free_table_list(struct table_list* table){
 	if(table_list_allocated){
 		struct job_file_table* t = table->head;
 		struct job_file_table* t_next;
-		for(int i = 0; i < table->size; i++){
-			if(t != NULL){
-				t_next = t->next;
-				free(t);
-				t = t_next;
-			}else{
-				break;
-			}
+		while(t != NULL){
+			t_next = t->next;
+			free(t);
+			t = t_next;
 		}
 		free(table);
 		table_list_allocated = 0;

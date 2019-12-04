@@ -370,7 +370,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i-1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_RDONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
+				int fd = open(path, O_RDONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist yet
@@ -399,7 +399,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -475,7 +475,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO|O_APPEND);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO|O_APPEND);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -504,7 +504,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list

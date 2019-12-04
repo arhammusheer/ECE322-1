@@ -370,7 +370,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i-1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_RDONLY);
+				int fd = open(path, O_RDONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist yet
@@ -399,7 +399,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -475,7 +475,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY | O_APPEND);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO|O_APPEND);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -504,7 +504,7 @@ void eval(char* cmdline) //Ben
 				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
-				int fd = open(path, O_WRONLY);
+				int fd = open(path, O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IR WXO);
 				
 				struct job_file_table* t= table_list_get(table, list_index);
 				if(t == NULL){//our job does not exist in the list
@@ -522,13 +522,15 @@ void eval(char* cmdline) //Ben
 	printf("Results:\n");
 	printf("Number of commands: %d\n", numCommands);
 	printf("Commands: \n");
-	for(int a = 0; a < 10; a++){
+	for(int a = 0; a < numCommands; a++){
+		printf("     ");
 		for(int b = 0; b < 10; b++){
 			if(commands[a][b] == NULL) break;
 			printf("%s ", commands[a][b]);
 		}
 		printf("\n");
 	}
+	printf("\n");
 	*/
 	//numCommands is how many commands we have to execute
 	//commands array holds the argument array for each command

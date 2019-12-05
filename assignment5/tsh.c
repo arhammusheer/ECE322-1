@@ -328,7 +328,7 @@ void eval(char* cmdline) //Ben
 	//and if there is a pipe then there are more commands to worry about
 	int list_index = 0;
 	int first_arg_idx = 0;
-	int last_arg_idx;
+	int last_arg_idx = 0;
 	int found_last_arg = 0; //flags if we have already found the last argument for a command in case of multiple redirectors on the right side
 	char in_redir[2] = "<\0";
 	char out_redir[2] = ">\0";
@@ -362,7 +362,15 @@ void eval(char* cmdline) //Ben
 			break;
 		}
 		if(!strncmp(arg, in_redir, 1)){
-			first_arg_idx = i + 1; //find index for the command name
+			if(!found_last_arg){
+				last_arg_idx = i - 1; //found index of the last argument
+				found_last_arg = 1;
+				
+				//copy over the arguments
+				for(int j = 0; j <= last_arg_idx-first_arg_idx; j++){
+					commands[list_index][j] = args[first_arg_idx+j];
+				}
+			}
 			if(i == 0){
 				//error
 			}else{

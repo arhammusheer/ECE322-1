@@ -599,7 +599,14 @@ void eval(char* cmdline) //Ben
 			}
 			else {//parent
 			   //add job to list
-				addjob(jobs, id, job_state, cmdline);
+				char buf[MAXLINE] = "\0";
+			   int a = 0;
+			   while(commands[j][a] != NULL){
+				   strcat(buf, commands[j][a]);
+				   a++;
+			   }
+			   strcat(buf, "\n");
+				addjob(jobs, id, job_state, buf);
 				if (table_struct != table->tail)
 					table_struct = table_struct->next;
 				

@@ -374,8 +374,8 @@ void eval(char* cmdline) //Ben
 			if(i == 0){
 				//error
 			}else{
-				//get previous argument
-				char* path = args[i-1];
+				//get next argument
+				char* path = args[i+1];
 				
 				//obtain file descriptor for the file
 				int fd = open(path, O_RDONLY|O_CREAT, S_IRWXU|S_IRWXG|S_IRWXO);
@@ -603,6 +603,7 @@ void eval(char* cmdline) //Ben
 			   int a = 0;
 			   while(commands[j][a] != NULL){
 				   strcat(buf, commands[j][a]);
+				   strcat(buf, " ");
 				   a++;
 			   }
 			   strcat(buf, "\n");

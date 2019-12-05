@@ -527,20 +527,6 @@ void eval(char* cmdline) //Ben
 		}
 	}
 	
-	/*
-	printf("Results:\n");
-	printf("Number of commands: %d\n", numCommands);
-	printf("Commands: \n");
-	for(int a = 0; a < numCommands; a++){
-		printf("     ");
-		for(int b = 0; b < 10; b++){
-			if(commands[a][b] == NULL) break;
-			printf("%s ", commands[a][b]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-	*/
 	//numCommands is how many commands we have to execute
 	//commands array holds the argument array for each command
 	//table is a linked list of structs that contain the file descriptors
@@ -565,7 +551,6 @@ void eval(char* cmdline) //Ben
 		else {//file name
 			strcat(path, "/bin/");
 			strcat(path, commands[j][0]);
-			//strcpy(commands[j][0], path);
 		}
 		if (get_num_jobs(jobs) < MAXJOBS) {
 			id = fork();
@@ -574,26 +559,21 @@ void eval(char* cmdline) //Ben
 				setpgid(0, 0);
 				// Set stdin;
 				if(table_struct->in != 0){
-					//close(0);
 					dup2(table_struct->in, 0);
 					close(table_struct->in);
 				}
 
 				// set stdout
 				if(table_struct->out != 1){
-					//close(1);
 					dup2(table_struct->out, 1);
 					close(table_struct->out);
 				}
-				//close(table_struct->out);
 
 				// set stderr
 				if(table_struct->err != 2){
-					//close(2);
 					dup2(table_struct->err, 2);
 					close(table_struct->err);
 				}
-				//close(table_struct->err);
 				
 				
 
@@ -609,20 +589,16 @@ void eval(char* cmdline) //Ben
 			else {//parent
 			   //add job to list
 				if (table_struct->in != 0) {
-					//close(0);
 					close(table_struct->in);
 				}
 
 				// set stdout
 				if (table_struct->out != 1) {
-					//close(1);
 					close(table_struct->out);
 				}
-				//close(table_struct->out);
 
 				// set stderr
 				if (table_struct->err != 2) {
-					//close(2);
 					close(table_struct->err);
 				}
 				char buf[MAXLINE] = "\0";
@@ -912,13 +888,6 @@ void sigchld_handler(int sig)
             sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
             puts(buffer);
         }
-		//int n;
-		//n = sysconf(_SC_OPEN_MAX);
-		//int j;
-		//for (j = 3; j < n; j++) {
-		//	if (0 == fcntl(j, F_GETOWN, 0))
-		//		close(j);
-		//}
         // Set the signal mask back to the old value
         if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
             puts("sigprocmask in sigchld_handler failed to run!");

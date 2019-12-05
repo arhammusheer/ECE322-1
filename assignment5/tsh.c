@@ -390,7 +390,7 @@ void eval(char* cmdline) //Ben
 					t->in = fd;
 				}
 			}
-		}else if (!strncmp(arg, out_redir, 1)){
+		}else if (!strncmp(arg, out_redir, 2)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;

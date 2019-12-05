@@ -547,50 +547,74 @@ void eval(char* cmdline) //Ben
 	int job_state = (run_bg) ? BG : FG;
 
 	//figure out full file path vs filename
-	char *path = malloc(MAXLINE);
-	if (contains(args[0], '/')) {//file path
-		strcpy(path, args[0]);
-	}
-	else {//file name
-	    strcat(path, "/bin/");
-		strcat(path, args[0]);
-	}
-	if (get_num_jobs(jobs) < MAXJOBS) {
-		id = fork();
-		if (id == 0) {
-			//child runs job
-			setpgid(0,0);
-			if(execve(path, args, environ)){ //I hope environ is the environment for the new program
-				//if returns, then there was some error
-				char buffer[50];
-				sprintf(buffer, "%s: Command not found", path);
-				puts(buffer);
-				exit(0);
+	int j;
+	struct job_file_table* table_struct = table->head;
+	for (j = 0; j < numCommands; j++) {
+		char* path = malloc(MAXLINE);
+		if (contains(commands[j][0], '/')) {//file path
+			strcpy(path, commands[j][0]);
+		}
+		else {//file name
+			strcat(path, "/bin/");
+			strcat(path, commands[j][0]);
+			//strcpy(commands[j][0], path);
+		}
+		if (get_num_jobs(jobs) < MAXJOBS) {
+			id = fork();
+			if (id == 0) {
+				//child runs job
+				setpgid(0, 0);
+				// Set stdin;
+				dup2(table_struct->in, STDIN_FILENO);
+				//close(table_struct->in);
+
+				// set stdout
+				//close(1);
+				dup2(table_struct->out, STDOUT_FILENO);
+				//close(table_struct->out);
+
+				// set stderr
+				//close(2);
+				dup2(table_struct->err, STDERR_FILENO);
+				//close(table_struct->err);
+
+				if(table_struct != table->tail)
+					table_struct = table_struct->next;
+
+
+				if (execve(path, commands[j], environ)) { //I hope environ is the environment for the new program
+					//if returns, then there was some error
+					char buffer[50];
+					sprintf(buffer, "%s: Command not found", path);
+					puts(buffer);
+					exit(0);
+				}
+			}
+			else {//parent
+			   //add job to list
+				addjob(jobs, id, job_state, cmdline);
+				struct job_t* requested_job = getjobpid(jobs, id);
+				if (!run_bg) {
+					//parent needs to display stdout of child? how to do?
+
+					//wait for foreground process to complete
+					waitfg(id);
+				}
+				else {
+					//program in background, parent continues as normal
+					listjob(requested_job);
+				}
+
 			}
 		}
-		else {//parent
-		   //add job to list
-            addjob(jobs, id, job_state, cmdline);
-            struct job_t* requested_job = getjobpid(jobs, id);
-			if (!run_bg) {
-				//parent needs to display stdout of child? how to do?
+		else {
+			//job list already full!
 
-				//wait for foreground process to complete
-				waitfg(id);
-			}
-			else {
-				//program in background, parent continues as normal
-				listjob(requested_job);
-			}
-			
 		}
+		memset(path, 0, strlen(path));
+		free(path);
 	}
-	else {
-		//job list already full!
-
-	}
-	memset(path, 0, strlen(path));
-    free(path);
+	free_table_list(table);
 	return;
 }
 

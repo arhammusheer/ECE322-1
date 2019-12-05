@@ -436,18 +436,18 @@ void eval(char* cmdline) //Ben
 						//add both current and next job to the list
 						
 						//set out of current job to redirect to the pipe
-						add_new_file_table(table, STDIN_FILENO, fds[0], STDERR_FILENO);
+						add_new_file_table(table, STDIN_FILENO, fds[1], STDERR_FILENO);
 						//set in of next job to come from the pipe
-						add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+						add_new_file_table(table, fds[0], STDOUT_FILENO, STDERR_FILENO);
 					}else{//job exists in our list
 						//set stdout of the job to redirect to the pipe
-						t->out = fds[0];
+						t->out = fds[1];
 						if(t->next == NULL){//next job does not exist in our list
 							//add new job to the list and set its input to come from the pipe
-							add_new_file_table(table, fds[1], STDOUT_FILENO, STDERR_FILENO);
+							add_new_file_table(table, fds[0], STDOUT_FILENO, STDERR_FILENO);
 						}else{//next job DOES exist in our list
 							//set input of next job to come from the pipe
-							t->next->in = fds[1];
+							t->next->in = fds[0];
 						}
 					}
 					list_index++;
@@ -577,9 +577,8 @@ void eval(char* cmdline) //Ben
 				//close(2);
 				dup2(table_struct->err, STDERR_FILENO);
 				//close(table_struct->err);
-
-				if(table_struct != table->tail)
-					table_struct = table_struct->next;
+				
+				
 
 
 				if (execve(path, commands[j], environ)) { //I hope environ is the environment for the new program
@@ -593,6 +592,9 @@ void eval(char* cmdline) //Ben
 			else {//parent
 			   //add job to list
 				addjob(jobs, id, job_state, cmdline);
+				if (table_struct != table->tail)
+					table_struct = table_struct->next;
+				
 				struct job_t* requested_job = getjobpid(jobs, id);
 				if (!run_bg) {
 					//parent needs to display stdout of child? how to do?

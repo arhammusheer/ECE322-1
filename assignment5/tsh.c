@@ -312,8 +312,8 @@ struct job_file_table* table_list_get(struct table_list* table, int index){
 */
 void eval(char* cmdline) //Ben
 {
-	char* args[MAXARGS];
-	char* commands[10][MAXARGS]; //input handles up to 10 commands
+	char* args[MAXARGS] = {NULL};
+	char* commands[10][MAXARGS] = {NULL}; //input handles up to 10 commands
 	int numCommands = 1;
 
 	//parse line

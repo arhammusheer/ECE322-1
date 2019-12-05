@@ -361,7 +361,7 @@ void eval(char* cmdline) //Ben
 			
 			break;
 		}
-		if(!strncmp(arg, in_redir, 1)){
+		if(!strncmp(arg, in_redir, 2)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
@@ -419,7 +419,7 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (!strncmp(arg, pipe_redir, 1)){
+		}else if (!strncmp(arg, pipe_redir, 2)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
@@ -465,7 +465,7 @@ void eval(char* cmdline) //Ben
 				}
 				
 			}
-		}else if (!strncmp(arg, out_append_redir, 2)){
+		}else if (!strncmp(arg, out_append_redir, 3)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;
@@ -495,7 +495,7 @@ void eval(char* cmdline) //Ben
 					t->out = fd;
 				}
 			}
-		}else if (!strncmp(arg, err_redir, 2)){
+		}else if (!strncmp(arg, err_redir, 3)){
 			if(!found_last_arg){
 				last_arg_idx = i - 1; //found index of the last argument
 				found_last_arg = 1;

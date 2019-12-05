@@ -574,14 +574,14 @@ void eval(char* cmdline) //Ben
 				setpgid(0, 0);
 				// Set stdin;
 				if(table_struct->in != 0){
-					close(0);
+					//close(0);
 					dup2(table_struct->in, 0);
 					close(table_struct->in);
 				}
 
 				// set stdout
 				if(table_struct->out != 1){
-					close(1);
+					//close(1);
 					dup2(table_struct->out, 1);
 					close(table_struct->out);
 				}
@@ -589,7 +589,7 @@ void eval(char* cmdline) //Ben
 
 				// set stderr
 				if(table_struct->err != 2){
-					close(2);
+					//close(2);
 					dup2(table_struct->err, 2);
 					close(table_struct->err);
 				}
@@ -608,6 +608,23 @@ void eval(char* cmdline) //Ben
 			}
 			else {//parent
 			   //add job to list
+				if (table_struct->in != 0) {
+					//close(0);
+					close(table_struct->in);
+				}
+
+				// set stdout
+				if (table_struct->out != 1) {
+					//close(1);
+					close(table_struct->out);
+				}
+				//close(table_struct->out);
+
+				// set stderr
+				if (table_struct->err != 2) {
+					//close(2);
+					close(table_struct->err);
+				}
 				char buf[MAXLINE] = "\0";
 			   int a = 0;
 			   while(commands[j][a] != NULL){
@@ -895,6 +912,13 @@ void sigchld_handler(int sig)
             sprintf(buffer, "Job [%i] (%i) stopped by signal 20", j_id, j_pid);
             puts(buffer);
         }
+		//int n;
+		//n = sysconf(_SC_OPEN_MAX);
+		//int j;
+		//for (j = 3; j < n; j++) {
+		//	if (0 == fcntl(j, F_GETOWN, 0))
+		//		close(j);
+		//}
         // Set the signal mask back to the old value
         if(sigprocmask(SIG_SETMASK, &prev_mask, NULL)){
             puts("sigprocmask in sigchld_handler failed to run!");

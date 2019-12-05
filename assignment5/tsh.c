@@ -573,17 +573,26 @@ void eval(char* cmdline) //Ben
 				//child runs job
 				setpgid(0, 0);
 				// Set stdin;
-				dup2(table_struct->in, STDIN_FILENO);
-				//close(table_struct->in);
+				if(table_struct->in != 0){
+					close(0);
+					dup2(table_struct->in, 0);
+					close(table_struct->in);
+				}
 
 				// set stdout
-				//close(1);
-				dup2(table_struct->out, STDOUT_FILENO);
+				if(table_struct->out != 1){
+					close(1);
+					dup2(table_struct->out, 1);
+					close(table_struct->out);
+				}
 				//close(table_struct->out);
 
 				// set stderr
-				//close(2);
-				dup2(table_struct->err, STDERR_FILENO);
+				if(table_struct->err != 2){
+					close(2);
+					dup2(table_struct->err, 2);
+					close(table_struct->err);
+				}
 				//close(table_struct->err);
 				
 				

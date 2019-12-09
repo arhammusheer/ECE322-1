@@ -54,27 +54,25 @@ int main(int argc, char **argv)
     strcat(message, body);
 
 
-    char * serverreply[500];
+    char * serverreply = malloc(500);
     clientfd = Open_clientfd(host, port);
     send(clientfd, message, strlen(message), 0);
     recv(clientfd, serverreply, 500, 0);
-    printf(serverreply);
-    strcat(serverreply, "\0");
+
 
     regex_t regex;
     int reti;
-    regmatch_t rm[2];
-    reti = regcomp(&regex, "<double>(.*)</double>",REG_EXTENDED);
-    reti = regexec(&regex, serverreply, 2, rm, 0);
-    printf("%i", reti);
-    printf("Text: %.*s", (int)(rm[1].rm_eo - rm[1].rm_so), serverreply + rm[1].rm_so);
-    //char msgbuf[100];
-    //regerror(reti, &regex, msgbuf, sizeof(msgbuf));
-    //fprintf(stderr, "Regex match failed: %s\n", msgbuf);
-    /* 
-	Write your code here.
-	Recommend to use the Robust I/O package.
-    */
+    regmatch_t rm[1];
+    regmatch_t pm[1];
+    reti = regcomp(&regex, "(>[0-9]*.[0-9]+<)+",REG_EXTENDED);
+    reti = regexec(&regex, serverreply, 1, rm, 0);
+    char * onum1 = malloc(10);
+    char * onum2 = malloc(10);
+
+    sprintf(onum1,"%.*s", (int)(rm[0].rm_eo - rm[0].rm_so-2), serverreply + rm[0].rm_so+1);
+    regexec(&regex, serverreply+rm[0].rm_eo, 1, pm, 0);
+    sprintf(onum2,"%.*s", (int)(pm[0].rm_eo - pm[0].rm_so-2), serverreply + pm[0].rm_so + rm[0].rm_eo+1);
+    printf("%s %s", onum1, onum2);
     
     Close(clientfd);
     exit(0);
